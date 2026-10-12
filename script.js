@@ -10,6 +10,8 @@
 (function () {
   "use strict";
 
+  
+
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
 
