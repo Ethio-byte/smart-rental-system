@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b6b52" />
+  <meta
+    name="description"
+    content="Create a Smart Rental account as a renter or landlord and find or list verified rental properties across Ethiopia."
+  />
+  <title>Register — Smart Rental</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="auth-page">
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- ============================= HEADER ============================= -->
+  <header class="site-header" id="siteHeader">
+    <div class="container nav">
+      <a class="brand" href="index.html" aria-label="Smart Rental — home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+            <path d="M9.5 21v-6h5v6" />
+          </svg>
+        </span>
+        <span class="brand-text">Smart<em>Rental</em></span>
+      </a>
+
+      <div class="nav-actions">
+        <a class="btn btn-ghost" href="index.html" aria-label="Back to Home">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12H5M11 6l-6 6 6 6" />
+          </svg>
+          <span class="btn-label">Back to Home</span>
+        </a>
+        <a class="btn btn-primary" href="login.html">Login</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="auth-main">
+    <section class="auth-section" aria-labelledby="register-title">
+      <div class="container auth-shell">
+        <!-- Brand / reassurance panel -->
+        <aside class="auth-aside" aria-hidden="true">
+          <p class="section-kicker">Join Smart Rental</p>
+          <h2 class="auth-aside-title">Create your free account</h2>
+          <p class="auth-aside-text">
+            Whether you are looking for a place or listing one, Smart Rental keeps the
+            process safe, clear and verified.
+          </p>
+          <ul class="auth-aside-list">
+            <li>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3Z" /><path d="m9 12 2 2 4-4" /></svg>
+              Verified listings &amp; owners
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+              Filter by city, type and budget
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="m17 11 2 2 4-4" /></svg>
+              Separate renter &amp; landlord tools
+            </li>
+          </ul>
+        </aside>
+
+        <!-- Registration form -->
+        <div class="auth-card">
+          <div class="auth-head">
+            <p class="section-kicker">Get started</p>
+            <h1 class="auth-title" id="register-title">Create an account</h1>
+            <p class="auth-sub">It only takes a minute to set up your Smart Rental account.</p>
+          </div>
+
+          <!-- Status message (errors + demo success) -->
+          <div class="form-message" id="registerMessage" role="alert" aria-live="polite" hidden></div>
+
+          <form class="auth-form" id="registerForm" novalidate>
+            <div class="form-field">
+              <label for="fullName">Full name</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+                <input
+                  id="fullName"
+                  name="fullName"
+                  type="text"
+                  autocomplete="name"
+                  placeholder="e.g. Hanna Bekele"
+                  required
+                  aria-describedby="fullNameError"
+                />
+              </div>
+              <p class="field-error" id="fullNameError"></p>
+            </div>
+
+            <div class="form-field">
+              <label for="registerEmail">Email address</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m3 7 9 6 9-6" />
+                </svg>
+                <input
+                  id="registerEmail"
+                  name="email"
+                  type="email"
+                  inputmode="email"
+                  autocomplete="email"
+                  placeholder="you@example.com"
+                  required
+                  aria-describedby="registerEmailError"
+                />
+              </div>
+              <p class="field-error" id="registerEmailError"></p>
+            </div>
+
+            <div class="form-field">
+              <label for="registerPassword">Password</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="10" rx="2" />
+                  <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                </svg>
+                <input
+                  id="registerPassword"
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="At least 8 characters"
+                  required
+                  aria-describedby="registerPasswordError registerPasswordHint"
+                />
+                <button
+                  class="password-toggle"
+                  id="registerPasswordToggle"
+                  type="button"
+                  aria-label="Show password"
+                  aria-pressed="false"
+                  data-toggle-for="registerPassword"
+                >
+                  <svg class="icon-eye" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="icon-eye-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c6.4 0 10 8 10 8a17.6 17.6 0 0 1-3.2 4.3M6.6 6.6A17.4 17.4 0 0 0 2 12s3.6 7 10 7a10.9 10.9 0 0 0 4.4-.9" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /><path d="m3 3 18 18" /></svg>
+                </button>
+              </div>
+              <p class="field-hint" id="registerPasswordHint">Use at least 8 characters.</p>
+              <p class="field-error" id="registerPasswordError"></p>
+            </div>
+
+            <div class="form-field">
+              <label for="confirmPassword">Confirm password</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="10" rx="2" />
+                  <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                </svg>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="Re-enter your password"
+                  required
+                  aria-describedby="confirmPasswordError"
+                />
+                <button
+                  class="password-toggle"
+                  id="confirmPasswordToggle"
+                  type="button"
+                  aria-label="Show password"
+                  aria-pressed="false"
+                  data-toggle-for="confirmPassword"
+                >
+                  <svg class="icon-eye" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="icon-eye-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c6.4 0 10 8 10 8a17.6 17.6 0 0 1-3.2 4.3M6.6 6.6A17.4 17.4 0 0 0 2 12s3.6 7 10 7a10.9 10.9 0 0 0 4.4-.9" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /><path d="m3 3 18 18" /></svg>
+                </button>
+              </div>
+              <p class="field-error" id="confirmPasswordError"></p>
+            </div>
+
+            <fieldset class="form-field form-field--fieldset">
+              <legend>Account type</legend>
+              <div class="role-group">
+                <label class="role-option">
+                  <input type="radio" name="accountType" value="renter" checked />
+                  <span class="role-card">
+                    <span class="role-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+                    </span>
+                    <span class="role-text">
+                      <strong>Renter</strong>
+                      <small>Find a place to live</small>
+                    </span>
+                  </span>
+                </label>
+
+                <label class="role-option">
+                  <input type="radio" name="accountType" value="landlord" />
+                  <span class="role-card">
+                    <span class="role-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" /><path d="M9.5 21v-6h5v6" /></svg>
+                    </span>
+                    <span class="role-text">
+                      <strong>Landlord</strong>
+                      <small>List and manage property</small>
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <button class="btn btn-primary btn-block" type="submit">Create account</button>
+          </form>
+
+          <p class="auth-switch">
+            Already have an account? <a href="login.html">Log in</a>
+          </p>
+
+          <p class="form-note">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" /></svg>
+            Demo interface only — no account is actually created and nothing you type is stored. Real registration and authentication will be added with the backend later.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =============================== FOOTER =============================== -->
+  <footer class="site-footer auth-footer">
+    <div class="container footer-bottom">
+      <p>&copy; <span id="year">2026</span> Smart Rental. All rights reserved.</p>
+      <ul class="footer-legal">
+        <li><a href="index.html#about">Privacy Policy</a></li>
+        <li><a href="index.html#about">Terms of Service</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="auth.js"></script>
+</body>
+</html>
