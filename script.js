@@ -112,41 +112,77 @@
   const filterStatus = $("#filterStatus");
   const noResults = $("#noResults");
   const propertySection = $("#properties");
+  const locationSelect = $("#location");
+  const typeSelect = $("#type");
+  const maxRentInput = $("#maxRent");
+  const clearButton = $("#clearFilters");
+
+  // Normalise text so matching is case-insensitive and ignores extra spaces.
+  function normalise(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
+
+  function scrollToProperties() {
+    if (!propertySection) return;
+    propertySection.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+  }
 
   function filterProperties() {
     if (!propertyGrid) return;
 
-    const location = $("#location").value;
-    const type = $("#type").value;
-    const price = $("#price").value;
+    const location = normalise(locationSelect ? locationSelect.value : "");
+    const type = normalise(typeSelect ? typeSelect.value : "");
+
+    // Read the maximum monthly rent, guarding against invalid input.
+    let maxRent = null;
+    if (maxRentInput && maxRentInput.value.trim() !== "") {
+      const parsed = Number(maxRentInput.value);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        maxRent = parsed;
+        maxRentInput.setAttribute("aria-invalid", "false");
+      } else {
+        maxRentInput.setAttribute("aria-invalid", "true");
+      }
+    }
 
     let visibleCount = 0;
     const cards = $$(".property-card", propertyGrid);
 
     cards.forEach((card) => {
-      const matchesLocation = !location || card.dataset.location === location;
-      const matchesType = !type || card.dataset.type === type;
+      const cardLocation = normalise(card.dataset.location);
+      const cardType = normalise(card.dataset.type);
+      const cardPrice = Number(card.dataset.price);
 
-      let matchesPrice = true;
-      if (price) {
-        const [min, max] = price.split("-").map(Number);
-        const value = Number(card.dataset.price);
-        matchesPrice = value >= min && value <= max;
-      }
+      const matchesLocation =
+        !location || cardLocation === location || cardLocation.includes(location);
+      const matchesType = !type || cardType === type;
+      const matchesMaxRent = maxRent === null || cardPrice <= maxRent;
 
-      const show = matchesLocation && matchesType && matchesPrice;
+      const show = matchesLocation && matchesType && matchesMaxRent;
       card.classList.toggle("is-hidden", !show);
       if (show) visibleCount += 1;
     });
 
-    if (noResults) noResults.hidden = visibleCount !== 0;
+    const hasFilters = Boolean(location || type || maxRent !== null);
+
+    if (noResults) noResults.hidden = visibleCount !== 0 || !hasFilters;
+    if (clearButton) clearButton.hidden = !hasFilters;
 
     if (filterStatus) {
-      const hasFilters = Boolean(location || type || price);
       if (hasFilters) {
         filterStatus.hidden = false;
         filterStatus.textContent =
-          visibleCount === 1
+          visibleCount === 0
+            ? "No listings match your filters."
+            : visibleCount === 1
             ? "1 listing matches your search."
             : visibleCount + " listings match your search.";
       } else {
@@ -155,25 +191,36 @@
     }
   }
 
+  function resetFilters() {
+    if (searchForm) searchForm.reset();
+    [locationSelect, typeSelect, maxRentInput].forEach((el) => {
+      if (el) el.removeAttribute("aria-invalid");
+    });
+    filterProperties();
+  }
+
   if (searchForm) {
     searchForm.addEventListener("submit", (event) => {
       event.preventDefault();
       filterProperties();
-      if (propertySection) {
-        propertySection.scrollIntoView({
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-            ? "auto"
-            : "smooth",
-          block: "start",
-        });
-      }
+      scrollToProperties();
     });
 
-    // Live filtering as the user adjusts selects
-    $$("select", searchForm).forEach((select) => {
-      select.addEventListener("change", filterProperties);
+    // Live filtering as the user adjusts the controls
+    $$("select, input", searchForm).forEach((control) => {
+      control.addEventListener("input", filterProperties);
+      control.addEventListener("change", filterProperties);
     });
   }
+
+  if (clearButton) {
+    clearButton.addEventListener("click", () => {
+      resetFilters();
+    });
+  }
+
+  // Initial state: no filters active, so show every card.
+  filterProperties();
 
   /* ------------------------------ Scroll reveal ---------------------------- */
   const revealTargets = $$(
