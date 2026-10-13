@@ -13,6 +13,8 @@
   /* ------------------------------- Utilities ------------------------------- */
   // Simple, practical email format check (matches the browser's intent).
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  // Ethiopian phone: +251 9XX XXX XXX or 09XX XXX XXX (optional leading +)
+  const PHONE_PATTERN = /^(\+?251|0)?9\d{8}$/;
   const MIN_PASSWORD_LENGTH = 8;
 
   function getErrorEl(input) {
@@ -79,6 +81,15 @@
     return setFieldError(input, "");
   }
 
+  function validatePhone(input) {
+    const value = input.value.trim();
+    if (!value) return setFieldError(input, "");
+    if (!PHONE_PATTERN.test(value.replace(/\s+/g, ""))) {
+      return setFieldError(input, "Enter a valid Ethiopian phone number, e.g. +251 911 22 33 44.");
+    }
+    return setFieldError(input, "");
+  }
+
   function validateRequired(input, message) {
     if (!input.value.trim()) return setFieldError(input, message);
     return setFieldError(input, "");
@@ -136,6 +147,7 @@
     const messageEl = $("#registerMessage");
     const fullName = $("#fullName");
     const email = $("#registerEmail");
+    const phone = $("#phoneNumber");
     const password = $("#registerPassword");
     const confirm = $("#confirmPassword");
 
@@ -158,6 +170,7 @@
       const results = [
         validateRequired(fullName, "Please enter your full name."),
         validateEmail(email),
+        validatePhone(phone),
         validatePassword(),
         validateConfirm(),
       ];
@@ -189,6 +202,7 @@
     // Field-level validation on blur.
     fullName.addEventListener("blur", () => validateRequired(fullName, "Please enter your full name."));
     email.addEventListener("blur", () => validateEmail(email));
+    phone.addEventListener("blur", validatePhone);
     password.addEventListener("blur", validatePassword);
     confirm.addEventListener("blur", validateConfirm);
 
@@ -200,6 +214,9 @@
     });
     email.addEventListener("input", () => {
       if (email.getAttribute("aria-invalid") === "true") validateEmail(email);
+    });
+    phone.addEventListener("input", () => {
+      if (phone.getAttribute("aria-invalid") === "true") validatePhone(phone);
     });
     password.addEventListener("input", () => {
       if (password.getAttribute("aria-invalid") === "true") validatePassword();

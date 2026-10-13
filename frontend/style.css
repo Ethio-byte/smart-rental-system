@@ -1748,18 +1748,45 @@ section {
   display: none;
 }
 
-/* Show/hide password */
-.password-toggle {
-  position: absolute;
-  right: 0.4rem;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  color: var(--color-muted);
-  transition: color var(--transition), background var(--transition);
-}
+/* Optional field tag */
+  .optional-tag {
+    font-weight: 500;
+    font-size: 0.7rem;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-left: 0.35rem;
+  }
+
+  /* Form links (forgot password) */
+  .form-link {
+    margin-top: 0.5rem;
+    text-align: right;
+  }
+
+  .form-link a {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-green-700);
+  }
+
+  .form-link a:hover {
+    color: var(--color-green-600);
+    text-decoration: underline;
+  }
+
+  /* Show/hide password */
+  .password-toggle {
+    position: absolute;
+    right: 0.4rem;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    color: var(--color-muted);
+    transition: color var(--transition), background var(--transition);
+  }
 
 .password-toggle:hover {
   color: var(--color-green-700);
