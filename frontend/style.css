@@ -1557,73 +1557,101 @@ section {
 
 .auth-shell {
   display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
+  grid-template-columns: 0.95fr 1.05fr;
   align-items: stretch;
   gap: clamp(1.25rem, 0.5rem + 3vw, 2.75rem);
 }
 
-/* Reassurance panel */
-.auth-aside {
+/* Property image panel */
+.auth-image {
   position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: clamp(1.5rem, 1rem + 3vw, 2.5rem);
   border-radius: var(--radius-lg);
-  background: linear-gradient(155deg, var(--color-green-700), var(--color-blue-700));
+  overflow: hidden;
   box-shadow: var(--shadow-lg);
-  color: #fff;
+  background: var(--color-ink);
+  min-height: 100%;
 }
 
-.auth-aside::before {
+.auth-image::before {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(320px 240px at 90% 8%, rgba(255, 255, 255, 0.18), transparent 70%),
-    radial-gradient(280px 220px at 4% 92%, rgba(255, 255, 255, 0.12), transparent 70%);
-  pointer-events: none;
+  background-image: url("assets/apartment-interior.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: brightness(0.45);
+  z-index: 0;
 }
 
-.auth-aside > * {
+.auth-image-overlay {
   position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: clamp(2rem, 1.5rem + 3vw, 3rem);
+  height: 100%;
+  color: #fff;
 }
 
-.auth-aside .section-kicker {
+.auth-image-kicker {
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: #9ff0d3;
   margin-bottom: 0.2rem;
 }
 
-.auth-aside-title {
+.auth-image-title {
   color: #fff;
-  font-size: clamp(1.4rem, 1.1rem + 1vw, 1.85rem);
+  font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.2rem);
+  line-height: 1.2;
+  max-width: 90%;
 }
 
-.auth-aside-text {
-  margin-top: 0.6rem;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 0.98rem;
+.auth-image-text {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 85%;
 }
 
-.auth-aside-list {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.auth-aside-list li {
-  display: flex;
+.auth-image-brand {
+  display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
-  font-size: 0.92rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.94);
+  gap: 0.7rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.auth-aside-list svg {
-  flex: none;
+.auth-image-brand .brand-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.auth-image-brand .brand-mark svg {
+  stroke: #fff;
+}
+
+.auth-image-brand span {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.auth-image-brand em {
+  font-style: normal;
   color: #9ff0d3;
 }
 
@@ -1947,8 +1975,8 @@ section {
     grid-template-columns: 1fr;
   }
 
-  .auth-aside-list {
-    grid-template-columns: repeat(3, 1fr);
+  .auth-image {
+    display: none;
   }
 }
 
@@ -1975,12 +2003,6 @@ section {
 
   .auth-page .nav-actions .btn-ghost .btn-label {
     display: none;
-  }
-
-  .auth-aside-list {
-    grid-template-columns: 1fr;
-    gap: 0.55rem;
-    margin-top: 1.1rem;
   }
 
   .role-group {
