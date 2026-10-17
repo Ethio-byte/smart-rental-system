@@ -354,6 +354,14 @@ section {
   color: #fff;
 }
 
+.badge-sample {
+  top: 0.85rem;
+  left: 0.85rem;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-ink-soft);
+  border: 1px solid var(--color-line);
+}
+
 /* ============================= 5. HEADER / NAVBAR ======================== */
 .site-header {
   position: sticky;
@@ -698,8 +706,9 @@ section {
 
 .preview-media {
   position: relative;
-  height: 190px;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
+  background: var(--color-surface-alt);
 }
 
 .preview-media img {
@@ -929,8 +938,9 @@ section {
 /* Property media */
 .property-media {
   position: relative;
-  height: 200px;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
+  background: var(--color-surface-alt);
 }
 
 .property-media img {
@@ -938,6 +948,19 @@ section {
   height: 100%;
   object-fit: cover;
   transition: transform 400ms ease;
+}
+
+.media-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--color-surface-alt);
+  color: var(--color-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: center;
 }
 
 .property-card:hover .property-media img {
@@ -1352,12 +1375,6 @@ section {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .property-grid .property-card:last-child {
-    grid-column: span 2;
-    max-width: 100%;
-    justify-self: center;
-  }
-
   .footer-grid {
     grid-template-columns: 1fr 1fr;
     gap: 2.25rem;
@@ -1462,11 +1479,6 @@ section {
   .feature-grid,
   .property-grid {
     grid-template-columns: 1fr;
-  }
-
-  .property-grid .property-card:last-child {
-    grid-column: auto;
-    max-width: none;
   }
 
   .search-card {

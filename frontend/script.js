@@ -106,6 +106,23 @@
     sections.forEach((section) => navObserver.observe(section));
   }
 
+  /* ---------------------------- Missing image fallback --------------------- */
+  $$(".property-media img, .preview-media img").forEach((img) => {
+    img.addEventListener(
+      "error",
+      () => {
+        img.hidden = true;
+        if (img.parentElement && !$(".media-fallback", img.parentElement)) {
+          const fallback = document.createElement("span");
+          fallback.className = "media-fallback";
+          fallback.textContent = "Image unavailable";
+          img.parentElement.appendChild(fallback);
+        }
+      },
+      { once: true }
+    );
+  });
+
   /* ---------------------------- Property search ---------------------------- */
   const searchForm = $("#heroSearch");
   const propertyGrid = $("#propertyGrid");
