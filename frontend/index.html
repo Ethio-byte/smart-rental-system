@@ -41,6 +41,7 @@
           <li><a class="nav-link" href="#properties" data-nav>Properties</a></li>
           <li><a class="nav-link" href="#how-it-works" data-nav>How It Works</a></li>
           <li><a class="nav-link" href="#about" data-nav>About</a></li>
+          <li><a class="nav-link" href="renter-dashboard.html">For Renters</a></li>
           <li><a class="nav-link" href="landlord-dashboard.html">For Landlords</a></li>
         </ul>
         <div class="nav-actions">
@@ -283,8 +284,13 @@
 
         <div class="property-grid" id="propertyGrid">
           <!-- Card 1 -->
-          <article class="property-card" data-location="Addis Ababa" data-type="Studio Apartment" data-price="9500">
+          <article class="property-card" data-property-id="bole-deluxe-studio" data-location="Addis Ababa" data-type="Studio Apartment" data-price="9500">
             <div class="property-media media-bole">
+              <button type="button" class="save-btn" data-save-id="bole-deluxe-studio" data-property-name="Bole Deluxe Studio" aria-pressed="false" aria-label="Save Bole Deluxe Studio to saved properties">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
               <img src="assets/properties/bole-studio.jpg" alt="Modern studio apartment interior in Bole, Addis Ababa with natural light and contemporary furnishings" loading="lazy" width="400" height="200" />
               <span class="badge badge-sample">Sample listing</span>
               <span class="badge badge-type">Studio</span>
@@ -308,8 +314,13 @@
           </article>
 
           <!-- Card 2 -->
-          <article class="property-card" data-location="Dire Dawa" data-type="House" data-price="18000">
+          <article class="property-card" data-property-id="dire-dawa-family-house" data-location="Dire Dawa" data-type="House" data-price="18000">
             <div class="property-media media-dire">
+              <button type="button" class="save-btn" data-save-id="dire-dawa-family-house" data-property-name="Dire Dawa Family House" aria-pressed="false" aria-label="Save Dire Dawa Family House to saved properties">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
               <img src="assets/properties/dire-house.jpg" alt="Spacious family house exterior in Sabian, Dire Dawa with garden and parking area" loading="lazy" width="400" height="200" />
               <span class="badge badge-sample">Sample listing</span>
               <span class="badge badge-type">House</span>
@@ -333,8 +344,13 @@
           </article>
 
           <!-- Card 3 -->
-          <article class="property-card" data-location="Hawassa" data-type="Single Room" data-price="4200">
+          <article class="property-card" data-property-id="hawassa-lakeview-room" data-location="Hawassa" data-type="Single Room" data-price="4200">
             <div class="property-media media-hawassa">
+              <button type="button" class="save-btn" data-save-id="hawassa-lakeview-room" data-property-name="Hawassa Lakeview Room" aria-pressed="false" aria-label="Save Hawassa Lakeview Room to saved properties">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
               <img src="assets/properties/hawassa-room.jpg" alt="Bright single room in Tabor, Hawassa with natural light, shared kitchen access, and lake area views" loading="lazy" width="400" height="200" />
               <span class="badge badge-sample">Sample listing</span>
               <span class="badge badge-type">Boarding</span>
@@ -509,6 +525,7 @@
           <li><a href="#properties" data-nav>Properties</a></li>
           <li><a href="#how-it-works" data-nav>How It Works</a></li>
           <li><a href="#about" data-nav>About</a></li>
+          <li><a href="renter-dashboard.html">Renter Dashboard</a></li>
         </ul>
       </nav>
 
@@ -553,5 +570,6 @@
   </footer>
 
   <script src="script.js"></script>
+  <script src="renter.js"></script>
 </body>
 </html>

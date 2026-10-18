@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b6b52" />
+  <meta
+    name="description"
+    content="Renter dashboard for Smart Rental — browse and manage your saved properties."
+  />
+  <title>Renter Dashboard — Smart Rental</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- ============================= HEADER / NAVBAR ============================= -->
+  <header class="site-header" id="siteHeader">
+    <div class="container nav">
+      <a class="brand" href="index.html" aria-label="Smart Rental — home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+            <path d="M9.5 21v-6h5v6" />
+          </svg>
+        </span>
+        <span class="brand-text">Smart<em>Rental</em></span>
+      </a>
+
+      <nav class="primary-nav" id="primaryNav" aria-label="Primary navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="index.html">Home</a></li>
+          <li><a class="nav-link" href="index.html#properties">Properties</a></li>
+          <li><a class="nav-link is-active" href="renter-dashboard.html" aria-current="page">Dashboard</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a class="btn btn-ghost" href="login.html">Login</a>
+          <a class="btn btn-primary" href="index.html#properties">Browse Properties</a>
+        </div>
+      </nav>
+
+      <button
+        class="nav-toggle"
+        id="navToggle"
+        type="button"
+        aria-label="Open navigation menu"
+        aria-expanded="false"
+        aria-controls="primaryNav"
+      >
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="container page-intro">
+      <p class="page-kicker">Renter area</p>
+      <h1 class="page-title">Renter Dashboard</h1>
+      <p class="page-lead">
+        Keep track of the properties you have saved while you search for a place
+        to live. Saved listings appear below.
+      </p>
+
+      <div class="info-banner" role="status">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8h.01M11 12h1v4h1" />
+        </svg>
+        <span>
+          <strong>Demo view only.</strong> Saved properties are stored only in this browser
+          using temporary local storage. They are not linked to an account and are not
+          synchronized across devices. Authentication, account-based saving, and database
+          loading are not connected yet. No passwords or personal information are stored.
+          Saved properties will be connected to authenticated renter accounts with
+          Supabase in a later phase.
+        </span>
+      </div>
+    </div>
+
+    <section class="container" style="padding-block: 2rem 1rem;" aria-labelledby="saved-properties-title">
+      <div class="management-card">
+        <div class="management-head">
+          <div>
+            <h2 class="management-title" id="saved-properties-title">Saved Properties</h2>
+            <p class="management-sub">Listings you have bookmarked. Use the heart button on any property card to save or remove it.</p>
+          </div>
+          <a class="btn btn-outline" href="index.html#properties">Browse properties</a>
+        </div>
+
+        <div class="saved-properties-body" style="padding: 1.25rem 1.35rem 1.5rem;">
+          <div class="property-grid" id="savedPropertiesGrid" hidden></div>
+
+          <div class="empty-state" id="savedEmptyState">
+            <span class="empty-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </span>
+            <h3>No saved properties yet</h3>
+            <p>
+              You have not saved any properties. Browse the available listings and use
+              the heart button on a property card to bookmark it. Your saved listings
+              will appear here.
+            </p>
+            <a class="btn btn-primary" href="index.html#properties">Browse properties</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="container" style="padding-block: 1rem 4rem;" aria-labelledby="applications-title">
+      <div class="management-card">
+        <div class="management-head">
+          <div>
+            <h2 class="management-title" id="applications-title">Rental Applications</h2>
+            <p class="management-sub">Future rental applications will be listed here.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap" tabindex="0" aria-label="Rental applications placeholder">
+          <div class="empty-state">
+            <span class="empty-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M16 13H8" />
+                <path d="M16 17H8" />
+                <path d="M10 9H8" />
+              </svg>
+            </span>
+            <h3>No rental applications yet</h3>
+            <p>
+              Application submission is not available in this phase. This area is reserved
+              for future rental application records and will not create or store any
+              applications until backend integration is ready.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p class="sample-note" style="margin-top: 1.25rem;">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8h.01M11 12h1v4h1" />
+        </svg>
+        Listings shown are sample listings for demonstration only. Saved state is stored
+        locally in this browser and is not account-based.
+      </p>
+    </section>
+  </main>
+
+  <!-- =============================== FOOTER =============================== -->
+  <footer class="site-footer auth-footer">
+    <div class="container footer-bottom">
+      <p>&copy; <span id="year">2026</span> Smart Rental. All rights reserved.</p>
+      <ul class="footer-legal">
+        <li><a href="index.html#about">Privacy Policy</a></li>
+        <li><a href="index.html#about">Terms of Service</a></li>
+        <li><a href="index.html">Home</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script src="renter.js"></script>
+</body>
+</html>

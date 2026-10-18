@@ -1351,6 +1351,57 @@ section {
   transform: none;
 }
 
+/* ============================ 13b. SAVE / BOOKMARK BUTTON ================= */
+.property-media .save-btn {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-muted);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-sm);
+  transition: color var(--transition), background var(--transition),
+    transform var(--transition), box-shadow var(--transition);
+}
+
+.property-media .save-btn:hover {
+  color: #d64545;
+  background: #fff;
+  transform: scale(1.06);
+}
+
+.property-media .save-btn.is-saved {
+  color: #d64545;
+  background: #fff;
+}
+
+.property-media .save-btn.is-saved svg {
+  fill: currentColor;
+}
+
+.property-media .save-btn:focus-visible {
+  outline: 3px solid var(--color-blue-600);
+  outline-offset: 2px;
+}
+
+.property-media .save-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 620px) {
+  .property-media .save-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* ============================== 14. RESPONSIVE ========================== */
 @media (max-width: 1024px) {
   .hero-grid {
