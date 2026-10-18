@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b6b52" />
+  <meta
+    name="description"
+    content="Landlord dashboard for Smart Rental — manage your property listings across Ethiopia."
+  />
+  <title>Landlord Dashboard — Smart Rental</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- ============================= HEADER / NAVBAR ============================= -->
+  <header class="site-header" id="siteHeader">
+    <div class="container nav">
+      <a class="brand" href="index.html" aria-label="Smart Rental — home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+            <path d="M9.5 21v-6h5v6" />
+          </svg>
+        </span>
+        <span class="brand-text">Smart<em>Rental</em></span>
+      </a>
+
+      <nav class="primary-nav" id="primaryNav" aria-label="Primary navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="index.html">Home</a></li>
+          <li><a class="nav-link" href="index.html#properties">Properties</a></li>
+          <li><a class="nav-link is-active" href="landlord-dashboard.html" aria-current="page">Dashboard</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a class="btn btn-ghost" href="login.html">Login</a>
+          <a class="btn btn-primary" href="add-property.html">Add Property</a>
+        </div>
+      </nav>
+
+      <button
+        class="nav-toggle"
+        id="navToggle"
+        type="button"
+        aria-label="Open navigation menu"
+        aria-expanded="false"
+        aria-controls="primaryNav"
+      >
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="container page-intro">
+      <p class="page-kicker">Landlord area</p>
+      <h1 class="page-title">Landlord Dashboard</h1>
+      <p class="page-lead">
+        Manage the properties you list on Smart Rental. Add new listings, review
+        their status, and keep your details up to date.
+      </p>
+
+      <div class="info-banner" role="status">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8h.01M11 12h1v4h1" />
+        </svg>
+        <span>
+          <strong>Demo view only.</strong> Authentication and database loading are not connected yet.
+          No landlord account or property data is loaded, and nothing here is saved.
+        </span>
+      </div>
+    </div>
+
+    <section class="container" style="padding-block: 2rem 4rem;" aria-labelledby="properties-manage-title">
+      <div class="management-card">
+        <div class="management-head">
+          <div>
+            <h2 class="management-title" id="properties-manage-title">Your properties</h2>
+            <p class="management-sub">Listings you own and manage will appear here.</p>
+          </div>
+          <a class="btn btn-primary" href="add-property.html">Add Property</a>
+        </div>
+
+        <div class="table-wrap" tabindex="0" aria-label="Scrollable property table">
+          <table class="management-table" aria-label="Your property listings">
+            <thead>
+              <tr>
+                <th scope="col">Property</th>
+                <th scope="col">Location</th>
+                <th scope="col">Monthly rent (ETB)</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="propertyTableBody">
+              <tr id="emptyPropertiesRow">
+                <td colspan="5">
+                  <div class="empty-state">
+                    <span class="empty-state-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 10.5 12 3l9 7.5" />
+                        <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+                        <path d="M9.5 21v-6h5v6" />
+                      </svg>
+                    </span>
+                    <h3>No properties listed yet</h3>
+                    <p>
+                      You have not added any properties. When backend integration is ready,
+                      your listings will be loaded here. For now, use Add Property to try the form.
+                    </p>
+                    <a class="btn btn-primary" href="add-property.html">Add your first property</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="status-legend" aria-label="Listing status legend">
+        <span><span class="status-badge status-draft">Draft</span> Not yet published</span>
+        <span><span class="status-badge status-published">Published</span> Visible to renters</span>
+        <span><span class="status-badge status-unlisted">Unlisted</span> Hidden from search</span>
+      </div>
+
+      <p class="sample-note" style="margin-top: 1.25rem;">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8h.01M11 12h1v4h1" />
+        </svg>
+        Listing statuses shown above are labels only. No listing is marked as verified
+        unless verification actually exists.
+      </p>
+    </section>
+  </main>
+
+  <!-- =============================== FOOTER =============================== -->
+  <footer class="site-footer auth-footer">
+    <div class="container footer-bottom">
+      <p>&copy; <span id="year">2026</span> Smart Rental. All rights reserved.</p>
+      <ul class="footer-legal">
+        <li><a href="index.html#about">Privacy Policy</a></li>
+        <li><a href="index.html#about">Terms of Service</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script src="landlord.js"></script>
+</body>
+</html>
