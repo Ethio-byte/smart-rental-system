@@ -362,23 +362,50 @@
               <p class="field-error" id="contactPhoneError"></p>
             </div>
 
-            <div class="form-field">
-              <label for="propertyPhotos">Photos <span class="optional-tag">(optional)</span></label>
-              <input
-                id="propertyPhotos"
-                name="photos"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                aria-describedby="propertyPhotosHint propertyPhotosError"
-              />
+<div class="form-field">
+              <label>Photos <span class="optional-tag">(optional)</span></label>
+              <div class="photo-upload-actions">
+                <label class="btn btn-outline" for="choosePhotos" tabindex="0">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <span>Choose Photos</span>
+                </label>
+                <input
+                  id="choosePhotos"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  hidden
+                  aria-label="Choose photos from your device"
+                  aria-describedby="propertyPhotosHint propertyPhotosError"
+                />
+                <label class="btn btn-outline" for="takePhoto" tabindex="0">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="12" r="4" />
+                  </svg>
+                  <span>Take Photo</span>
+                </label>
+                <input
+                  id="takePhoto"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  hidden
+                  aria-label="Take a photo with your camera"
+                  aria-describedby="propertyPhotosHint propertyPhotosError"
+                />
+              </div>
               <p class="field-hint" id="propertyPhotosHint">
-                JPEG, PNG, or WebP. Max 5 MB per photo, up to 6 photos. Photos are previewed only and are not uploaded anywhere.
+                JPEG, PNG, or WebP. Max 5 MB per photo, up to 10 photos. Camera access depends on your device and browser. Photos are previewed only and are not uploaded anywhere.
               </p>
               <p class="field-error" id="propertyPhotosError"></p>
               <div class="photo-preview" id="photoPreview" aria-live="polite">
-  <p class="photo-empty">No photos selected yet.</p>
-</div>
+                <p class="photo-empty">No photos selected yet.</p>
+              </div>
             </div>
 
             <button class="btn btn-primary btn-block" type="submit">Add Property</button>

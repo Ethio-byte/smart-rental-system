@@ -117,13 +117,16 @@
     const bathrooms = $("#bathrooms");
     const description = $("#propertyDescription");
     const phone = $("#contactPhone");
-    const photos = $("#propertyPhotos");
+    const choosePhotos = $("#choosePhotos");
+    const takePhoto = $("#takePhoto");
     const preview = $("#photoPreview");
 
-    const MAX_PHOTOS = 6;
+    const MAX_PHOTOS = 10;
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
     const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
     let objectUrls = [];
+    let selectedFiles = [];
+    let coverIndex = 0;
 
     // Sub-city options by city (mirrors script.js ETHIOPIA_LOCATIONS)
     const SUB_CITIES_BY_CITY = {
@@ -296,57 +299,164 @@
       objectUrls = [];
     }
 
-    function renderPreview(files) {
+    function fileKey(file) {
+      return file.name + ":" + file.size + ":" + file.lastModified;
+    }
+
+    function renderPreview() {
       if (!preview) return;
       revokeUrls();
       preview.innerHTML = "";
-      if (!files || files.length === 0) {
+      if (!selectedFiles || selectedFiles.length === 0) {
         const empty = document.createElement("p");
         empty.className = "photo-empty";
         empty.textContent = "No photos selected yet.";
         preview.appendChild(empty);
         return;
       }
-      files.forEach((file) => {
+      selectedFiles.forEach((file, index) => {
         const url = URL.createObjectURL(file);
         objectUrls.push(url);
         const figure = document.createElement("figure");
-        figure.className = "photo-thumb";
+        figure.className = "photo-thumb" + (index === coverIndex ? " is-cover" : "");
+        figure.dataset.index = index;
+
         const img = document.createElement("img");
         img.src = url;
         img.alt = file.name;
+        img.loading = "lazy";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "photo-remove";
+        removeBtn.setAttribute("aria-label", "Remove " + file.name);
+        removeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+        const coverBtn = document.createElement("button");
+        coverBtn.type = "button";
+        coverBtn.className = "photo-cover-btn" + (index === coverIndex ? " is-active" : "");
+        coverBtn.setAttribute("aria-label", index === coverIndex ? "Cover photo (current)" : "Set as cover photo");
+        coverBtn.setAttribute("aria-pressed", index === coverIndex ? "true" : "false");
+        coverBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="12" cy="12" r="3"></circle></svg>';
+
         const caption = document.createElement("figcaption");
         caption.textContent = file.name;
+
         figure.appendChild(img);
+        figure.appendChild(removeBtn);
+        figure.appendChild(coverBtn);
         figure.appendChild(caption);
         preview.appendChild(figure);
       });
+
+      // Attach event listeners for remove and cover buttons
+      preview.querySelectorAll(".photo-remove").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const figure = btn.closest(".photo-thumb");
+          const index = parseInt(figure.dataset.index, 10);
+          removePhoto(index);
+        });
+      });
+
+      preview.querySelectorAll(".photo-cover-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const figure = btn.closest(".photo-thumb");
+          const index = parseInt(figure.dataset.index, 10);
+          setCoverPhoto(index);
+        });
+      });
+    }
+
+    function removePhoto(index) {
+      if (index < 0 || index >= selectedFiles.length) return;
+
+      // Revoke the object URL for the removed photo
+      if (objectUrls[index]) {
+        try { URL.revokeObjectURL(objectUrls[index]); } catch (e) { /* ignore */ }
+      }
+
+      selectedFiles.splice(index, 1);
+      objectUrls.splice(index, 1);
+
+      // Adjust cover index if needed
+      if (coverIndex >= selectedFiles.length) {
+        coverIndex = selectedFiles.length > 0 ? 0 : 0;
+      }
+
+      renderPreview();
+      validatePhotos();
+    }
+
+    function setCoverPhoto(index) {
+      if (index < 0 || index >= selectedFiles.length) return;
+      coverIndex = index;
+      renderPreview();
+    }
+
+    function addFiles(newFiles) {
+      const existingKeys = new Set(selectedFiles.map(fileKey));
+      let added = 0;
+      let rejected = 0;
+
+      for (const file of newFiles) {
+        if (selectedFiles.length >= MAX_PHOTOS) {
+          rejected++;
+          continue;
+        }
+        const key = fileKey(file);
+        if (existingKeys.has(key)) {
+          // Duplicate - skip
+          continue;
+        }
+        if (!ALLOWED_TYPES.includes(file.type)) {
+          rejected++;
+          continue;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          rejected++;
+          continue;
+        }
+        selectedFiles.push(file);
+        existingKeys.add(key);
+        added++;
+      }
+
+      if (rejected > 0) {
+        setFieldError(choosePhotos, "Some files were rejected: wrong type, too large, or would exceed the " + MAX_PHOTOS + "-photo limit.");
+      } else {
+        setFieldError(choosePhotos, "");
+      }
+
+      if (added > 0 || rejected > 0) {
+        renderPreview();
+      }
+      return added > 0;
     }
 
     function validatePhotos() {
-      if (!photos) return true;
-      const files = Array.from(photos.files || []);
-      if (files.length === 0) {
-        setFieldError(photos, "");
-        renderPreview([]);
+      if (selectedFiles.length === 0) {
+        setFieldError(choosePhotos, "");
+        renderPreview();
         return true;
       }
-      if (files.length > MAX_PHOTOS) {
-        setFieldError(photos, "You can select up to " + MAX_PHOTOS + " photos.");
+      if (selectedFiles.length > MAX_PHOTOS) {
+        setFieldError(choosePhotos, "You can select up to " + MAX_PHOTOS + " photos.");
         return false;
       }
-      for (const file of files) {
+      for (const file of selectedFiles) {
         if (!ALLOWED_TYPES.includes(file.type)) {
-          setFieldError(photos, "Only JPEG, PNG, or WebP images are allowed.");
+          setFieldError(choosePhotos, "Only JPEG, PNG, or WebP images are allowed.");
           return false;
         }
         if (file.size > MAX_FILE_SIZE) {
-          setFieldError(photos, "Each photo must be 5 MB or smaller.");
+          setFieldError(choosePhotos, "Each photo must be 5 MB or smaller.");
           return false;
         }
       }
-      setFieldError(photos, "");
-      renderPreview(files);
+      setFieldError(choosePhotos, "");
+      renderPreview();
       return true;
     }
 
@@ -467,8 +577,18 @@
     bedrooms.addEventListener("blur", () => validateOptionalNumber(bedrooms, "bedrooms", 0, 20));
     bathrooms.addEventListener("blur", () => validateOptionalNumber(bathrooms, "bathrooms", 0, 20));
 
-    if (photos) {
-      photos.addEventListener("change", validatePhotos);
+    function handleFileSelect(inputEl) {
+      if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
+      const newFiles = Array.from(inputEl.files);
+      addFiles(newFiles);
+      inputEl.value = "";
+    }
+
+    if (choosePhotos) {
+      choosePhotos.addEventListener("change", () => handleFileSelect(choosePhotos));
+    }
+    if (takePhoto) {
+      takePhoto.addEventListener("change", () => handleFileSelect(takePhoto));
     }
 
     // Clear errors on input
