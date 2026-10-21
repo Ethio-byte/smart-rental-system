@@ -18,6 +18,8 @@
       id: "bole-deluxe-studio",
       name: "Bole Deluxe Studio",
       city: "Addis Ababa",
+      subCity: "Bole",
+      area: "Bole",
       location: "Bole, Addis Ababa",
       type: "Studio Apartment",
       typeBadge: "Studio",
@@ -32,6 +34,8 @@
       id: "dire-dawa-family-house",
       name: "Dire Dawa Family House",
       city: "Dire Dawa",
+      subCity: "Sabian",
+      area: "Sabian",
       location: "Sabian, Dire Dawa",
       type: "House",
       typeBadge: "House",
@@ -46,6 +50,8 @@
       id: "hawassa-lakeview-room",
       name: "Hawassa Lakeview Room",
       city: "Hawassa",
+      subCity: "Tabor",
+      area: "Tabor",
       location: "Tabor, Hawassa",
       type: "Single Room",
       typeBadge: "Boarding",
@@ -153,7 +159,9 @@
     const article = document.createElement("article");
     article.className = "property-card";
     article.setAttribute("data-property-id", p.id);
-    article.setAttribute("data-location", p.city);
+    article.setAttribute("data-city", p.city);
+    article.setAttribute("data-sub-city", p.subCity || "");
+    article.setAttribute("data-area", p.area || "");
     article.setAttribute("data-type", p.type);
     article.setAttribute("data-price", String(p.price));
 

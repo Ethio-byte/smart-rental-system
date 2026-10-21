@@ -103,7 +103,14 @@
     const city = $("#propertyCity");
     const otherCityWrap = $("#otherCityWrap");
     const otherCity = $("#otherCity");
+    const subCityWrap = $("#subCityWrap");
+    const subCity = $("#propertySubCity");
+    const otherSubCityWrap = $("#otherSubCityWrap");
+    const otherSubCity = $("#otherSubCity");
+    const woredaWrap = $("#woredaWrap");
+    const woreda = $("#propertyWoreda");
     const area = $("#propertyArea");
+    const landmark = $("#propertyLandmark");
     const rent = $("#monthlyRent");
     const furnishing = $("#furnishing");
     const bedrooms = $("#bedrooms");
@@ -118,14 +125,166 @@
     const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
     let objectUrls = [];
 
+    // Sub-city options by city (mirrors script.js ETHIOPIA_LOCATIONS)
+    const SUB_CITIES_BY_CITY = {
+      "Addis Ababa": [
+        "Addis Ketema",
+        "Akaki Kaliti",
+        "Arada",
+        "Bole",
+        "Gulele",
+        "Kirkos",
+        "Kolfe Keranio",
+        "Lideta",
+        "Nifas Silk-Lafto",
+        "Yeka",
+      ],
+      "Dire Dawa": [
+        "Sabian",
+        "Kezira",
+        "Gende Ada",
+        "Melka Jebdu",
+        "Lege Harre",
+      ],
+      "Hawassa": [
+        "Addis Ketema",
+        "Bahil Adarash",
+        "Haile",
+        "Hayk Dar",
+        "Mehal Ketema",
+        "Misrak",
+        "Tabor",
+        "Wondogenet",
+      ],
+      Harar: [
+        "Abadir",
+        "Aboker",
+        "Assum Bari",
+        "Badro",
+        "Gidir Megala",
+        "Hamaressa",
+        "Jegol (Walled City)",
+        "Jinela",
+        "Shenkor",
+        "Sofia",
+      ],
+      Adama: ["Adama"],
+      "Bahir Dar": [
+        "Bahir Dar Zuria",
+        "Dagmawi",
+        "Facil",
+        "Gish Abay",
+        "Hidar",
+        "Shum Abo",
+        "Sefene Selam",
+        "Tana",
+      ],
+      Mekelle: [
+        "Adi Haki",
+        "Aynalem",
+        "Hawelti",
+        "Kedamay Weyane",
+        "Quiha",
+        "Semien",
+        "Hadnet",
+        "Ayder",
+      ],
+      Gondar: ["Azezo", "Dabat", "Gondar Zuria", "Maraki", "Teda"],
+      Jimma: ["Jimma"],
+    };
+
+    // Woreda field is optional and available for any city where applicable
+    const CITIES_WITH_WOREDA = ["Addis Ababa"];
+
+    function populateSubCities(cityValue) {
+      if (!subCity) return;
+      const options = SUB_CITIES_BY_CITY[cityValue] || [];
+      const currentValue = subCity.value;
+      subCity.innerHTML = '<option value="">Select sub-city / district</option>';
+      options.forEach((opt) => {
+        const optionEl = document.createElement("option");
+        optionEl.value = opt;
+        optionEl.textContent = opt;
+        subCity.appendChild(optionEl);
+      });
+      // Add "Other" option for custom entry
+      const otherOpt = document.createElement("option");
+      otherOpt.value = "Other";
+      otherOpt.textContent = "Other sub-city / district";
+      subCity.appendChild(otherOpt);
+      if (options.includes(currentValue) || currentValue === "Other") {
+        subCity.value = currentValue;
+      }
+    }
+
     function syncCity() {
-      const isOther = city.value === "Other";
-      otherCityWrap.hidden = !isOther;
+      const cityValue = city.value;
+      const isOtherCity = cityValue === "Other city or town";
+
+      // Other city input
+      otherCityWrap.hidden = !isOtherCity;
       if (otherCity) {
-        otherCity.required = isOther;
-        if (!isOther) {
+        otherCity.required = isOtherCity;
+        if (!isOtherCity) {
           otherCity.value = "";
           setFieldError(otherCity, "");
+        }
+      }
+
+      // Sub-city select: always show, but populate differently based on city
+      const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+      subCityWrap.hidden = false; // Always show local administrative area field
+
+      if (hasSubCities && !isOtherCity) {
+        // Known city with predefined sub-cities: show select with options
+        populateSubCities(cityValue);
+        subCity.hidden = false;
+        // otherSubCityWrap will be shown by syncSubCity when "Other" is selected
+      } else {
+        // Custom city or city without predefined sub-cities: show custom input directly
+        if (subCity) {
+          subCity.value = "";
+          setFieldError(subCity, "");
+        }
+        subCity.hidden = true;
+        // Show the custom input for sub-city
+        otherSubCityWrap.hidden = false;
+        if (otherSubCity) {
+          otherSubCity.required = true;
+        }
+      }
+
+      // Woreda field: available for any city where applicable
+      // Show for Addis Ababa always, and for other cities optionally
+      const showWoreda = CITIES_WITH_WOREDA.includes(cityValue) || isOtherCity;
+      woredaWrap.hidden = !showWoreda;
+      if (!showWoreda && woreda) {
+        woreda.value = "";
+        setFieldError(woreda, "");
+      }
+    }
+
+    function syncSubCity() {
+      const isOtherSubCity = subCity && subCity.value === "Other";
+      const cityValue = city.value;
+      const isOtherCity = cityValue === "Other city or town";
+      const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+
+      if (hasSubCities && !isOtherCity) {
+        // Known city with predefined sub-cities: show custom input when "Other" selected
+        otherSubCityWrap.hidden = !isOtherSubCity;
+        if (otherSubCity) {
+          otherSubCity.required = isOtherSubCity;
+          if (!isOtherSubCity) {
+            otherSubCity.value = "";
+            setFieldError(otherSubCity, "");
+          }
+        }
+      } else {
+        // Custom city or city without predefined sub-cities: custom input is always shown
+        otherSubCityWrap.hidden = false;
+        if (otherSubCity) {
+          otherSubCity.required = true;
         }
       }
     }
@@ -197,13 +356,36 @@
       results.push(validateRequired(type, "Please select a property type."));
       results.push(validateRequired(city, "Please select a city."));
 
-      if (city.value === "Other") {
+      const isOtherCity = city.value === "Other city or town";
+      if (isOtherCity) {
         results.push(validateRequired(otherCity, "Please enter the city."));
       } else {
         setFieldError(otherCity, "");
       }
 
-      results.push(validateRequired(area, "Please enter the specific area or neighborhood."));
+      // Sub-city / local administrative area validation
+      const cityValue = city.value;
+      const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+
+      if (hasSubCities && !isOtherCity) {
+        // Known city with predefined sub-cities
+        if (subCity.value === "Other") {
+          results.push(validateRequired(otherSubCity, "Please enter the sub-city or district."));
+        } else {
+          results.push(validateRequired(subCity, "Please select a sub-city or district."));
+          setFieldError(otherSubCity, "");
+        }
+      } else {
+        // Custom city or city without predefined sub-cities: otherSubCity is the required field
+        setFieldError(subCity, "");
+        results.push(validateRequired(otherSubCity, "Please enter the sub-city, district, or local administrative area."));
+      }
+
+      // Area (neighborhood/kebele) is always required
+      results.push(validateRequired(area, "Please enter the neighborhood, kebele, or local area."));
+
+      // Woreda is optional, no validation needed
+
       results.push(validatePositiveNumber(rent, "monthly rent"));
       results.push(validateRequired(description, "Please enter a property description."));
       results.push(validatePhone(phone));
@@ -218,8 +400,28 @@
 
     // City toggle
     if (city) {
-      city.addEventListener("change", syncCity);
+      city.addEventListener("change", () => {
+        syncCity();
+        validateRequired(city, "Please select a city.");
+      });
       syncCity();
+    }
+
+    // Sub-city toggle
+    if (subCity) {
+      subCity.addEventListener("change", () => {
+        syncSubCity();
+        const cityValue = city.value;
+        const isOtherCity = cityValue === "Other city or town";
+        const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+        if (hasSubCities && !isOtherCity) {
+          if (subCity.value === "Other") {
+            // validation will happen on blur/submit
+          } else {
+            validateRequired(subCity, "Please select a sub-city or district.");
+          }
+        }
+      });
     }
 
     // Field-level events
@@ -228,10 +430,37 @@
     city.addEventListener("change", () => validateRequired(city, "Please select a city."));
     if (otherCity) {
       otherCity.addEventListener("blur", () => {
-        if (city.value === "Other") validateRequired(otherCity, "Please enter the city.");
+        if (city.value === "Other city or town") validateRequired(otherCity, "Please enter the city.");
       });
     }
-    area.addEventListener("blur", () => validateRequired(area, "Please enter the specific area or neighborhood."));
+    if (subCity) {
+      subCity.addEventListener("blur", () => {
+        const cityValue = city.value;
+        const isOtherCity = cityValue === "Other city or town";
+        const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+        if (hasSubCities && !isOtherCity) {
+          if (subCity.value === "Other") {
+            // otherSubCity will be validated on its own blur
+          } else {
+            validateRequired(subCity, "Please select a sub-city or district.");
+          }
+        }
+      });
+    }
+    if (otherSubCity) {
+      otherSubCity.addEventListener("blur", () => {
+        const cityValue = city.value;
+        const isOtherCity = cityValue === "Other city or town";
+        const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+        if (hasSubCities && !isOtherCity && subCity.value === "Other") {
+          validateRequired(otherSubCity, "Please enter the sub-city or district.");
+        } else if (!hasSubCities || isOtherCity) {
+          // For custom cities or cities without predefined sub-cities, otherSubCity is always required
+          validateRequired(otherSubCity, "Please enter the sub-city, district, or local administrative area.");
+        }
+      });
+    }
+    area.addEventListener("blur", () => validateRequired(area, "Please enter the neighborhood, kebele, or local area."));
     rent.addEventListener("blur", () => validatePositiveNumber(rent, "monthly rent"));
     description.addEventListener("blur", () => validateRequired(description, "Please enter a property description."));
     phone.addEventListener("blur", validatePhone);
@@ -243,13 +472,31 @@
     }
 
     // Clear errors on input
-    [title, area, otherCity, rent, description, phone, bedrooms, bathrooms].forEach((el) => {
+    [title, area, otherCity, otherSubCity, rent, description, phone, bedrooms, bathrooms, subCity, woreda, landmark].forEach((el) => {
       if (!el) return;
       el.addEventListener("input", () => {
         if (el.getAttribute("aria-invalid") === "true") {
           if (el === title) validateRequired(title, "Please enter a property title.");
-          else if (el === area) validateRequired(area, "Please enter the specific area or neighborhood.");
+          else if (el === area) validateRequired(area, "Please enter the neighborhood, kebele, or local area.");
           else if (el === otherCity) validateRequired(otherCity, "Please enter the city.");
+          else if (el === otherSubCity) {
+            const cityValue = city.value;
+            const isOtherCity = cityValue === "Other city or town";
+            const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+            if (hasSubCities && !isOtherCity && subCity.value === "Other") {
+              validateRequired(otherSubCity, "Please enter the sub-city or district.");
+            } else if (!hasSubCities || isOtherCity) {
+              validateRequired(otherSubCity, "Please enter the sub-city, district, or local administrative area.");
+            }
+          }
+          else if (el === subCity) {
+            const cityValue = city.value;
+            const isOtherCity = cityValue === "Other city or town";
+            const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+            if (hasSubCities && !isOtherCity && subCity.value !== "Other") {
+              validateRequired(subCity, "Please select a sub-city or district.");
+            }
+          }
           else if (el === rent) validatePositiveNumber(rent, "monthly rent");
           else if (el === description) validateRequired(description, "Please enter a property description.");
           else if (el === phone) validatePhone(phone);

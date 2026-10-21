@@ -114,7 +114,13 @@
                     <option value="Addis Ababa">Addis Ababa</option>
                     <option value="Dire Dawa">Dire Dawa</option>
                     <option value="Hawassa">Hawassa</option>
-                    <option value="Other">Other city</option>
+                    <option value="Harar">Harar</option>
+                    <option value="Adama">Adama</option>
+                    <option value="Bahir Dar">Bahir Dar</option>
+                    <option value="Mekelle">Mekelle</option>
+                    <option value="Gondar">Gondar</option>
+                    <option value="Jimma">Jimma</option>
+                    <option value="Other city or town">Other city or town</option>
                   </select>
                 </div>
                 <p class="field-error" id="propertyCityError"></p>
@@ -140,8 +146,61 @@
               <p class="field-error" id="otherCityError"></p>
             </div>
 
+            <div class="form-field" id="subCityWrap">
+              <label for="propertySubCity">Sub-city / district <span class="required">*</span></label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <select id="propertySubCity" name="subCity" aria-describedby="propertySubCityHint propertySubCityError">
+                  <option value="">Select sub-city / district</option>
+                </select>
+              </div>
+              <p class="field-hint" id="propertySubCityHint">Select a sub-city or district, or choose "Other" to enter your own.</p>
+              <p class="field-error" id="propertySubCityError"></p>
+            </div>
+
+            <div class="form-field" id="otherSubCityWrap" hidden>
+              <label for="otherSubCity">Other sub-city / district <span class="required">*</span></label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <input
+                  id="otherSubCity"
+                  name="otherSubCity"
+                  type="text"
+                  placeholder="Enter sub-city / district"
+                  aria-describedby="otherSubCityHint otherSubCityError"
+                />
+              </div>
+              <p class="field-hint" id="otherSubCityHint">Enter the sub-city or district where the property is located.</p>
+              <p class="field-error" id="otherSubCityError"></p>
+            </div>
+
+            <div class="form-field" id="woredaWrap">
+              <label for="propertyWoreda">Woreda</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <input
+                  id="propertyWoreda"
+                  name="woreda"
+                  type="text"
+                  placeholder="e.g. Woreda 03, Woreda 12"
+                  aria-describedby="propertyWoredaHint propertyWoredaError"
+                />
+              </div>
+              <p class="field-hint" id="propertyWoredaHint">Optional. Enter the woreda if applicable for your city.</p>
+              <p class="field-error" id="propertyWoredaError"></p>
+            </div>
+
             <div class="form-field">
-              <label for="propertyArea">Specific area / neighborhood <span class="required">*</span></label>
+              <label for="propertyArea">Neighborhood / kebele / local area <span class="required">*</span></label>
               <div class="input-wrap">
                 <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
@@ -151,13 +210,31 @@
                   id="propertyArea"
                   name="area"
                   type="text"
-                  placeholder="e.g. Bole, Kazanchis"
+                  placeholder="e.g. Bole Atlas, Kazanchis, Tabor"
                   required
                   aria-describedby="propertyAreaHint propertyAreaError"
                 />
               </div>
-              <p class="field-hint" id="propertyAreaHint">Neighborhood or specific location within the city.</p>
+              <p class="field-hint" id="propertyAreaHint">Required. Enter the specific neighborhood, kebele, or local area.</p>
               <p class="field-error" id="propertyAreaError"></p>
+            </div>
+
+            <div class="form-field">
+              <label for="propertyLandmark">Landmark / additional details</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <input
+                  id="propertyLandmark"
+                  name="landmark"
+                  type="text"
+                  placeholder="e.g. Near Bole Medhane Alem, behind Edna Mall"
+                  aria-describedby="propertyLandmarkHint"
+                />
+              </div>
+              <p class="field-hint" id="propertyLandmarkHint">Optional. Nearby landmark or additional location details to help renters find the property.</p>
             </div>
 
             <div class="form-grid">

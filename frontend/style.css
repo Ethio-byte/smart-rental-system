@@ -547,8 +547,8 @@ section {
 /* Search card */
 .search-card {
   display: grid;
-  grid-template-columns: 1.2fr 1.1fr 1.1fr auto;
-  align-items: end;
+  grid-template-columns: minmax(160px, 1.2fr) minmax(160px, 1.1fr) minmax(140px, 1fr) minmax(150px, 1fr) minmax(110px, max-content);
+  align-items: stretch;
   gap: 0.75rem;
   margin-top: 2rem;
   padding: 1rem;
@@ -556,6 +556,45 @@ section {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+}
+
+.search-card .search-field {
+  display: flex;
+  flex-direction: column;
+  min-height: 72px;
+}
+
+.search-card .search-field > .field-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.search-card .search-field > .field-control:only-child {
+  flex: 1;
+}
+
+/* Sub-city field: ensure both select and custom input controls align properly */
+#subCityWrap .field-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+#subCityWrap .field-control[hidden] {
+  display: none !important;
+}
+
+.btn-search {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0;
+  padding-inline: 1.1rem;
+  white-space: nowrap;
 }
 
 .search-field {
@@ -572,12 +611,18 @@ section {
   text-transform: uppercase;
   color: var(--color-muted);
   padding-left: 0.2rem;
+  line-height: 1.3;
+  min-height: 2.6em; /* Reserve space for up to 2 lines of label text */
+  display: flex;
+  align-items: flex-end;
 }
 
 .field-control {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  min-width: 0;
 }
 
 .field-control svg {
@@ -585,12 +630,13 @@ section {
   left: 0.75rem;
   color: var(--color-green-600);
   pointer-events: none;
+  flex-shrink: 0;
 }
 
 .field-control select {
   width: 100%;
   appearance: none;
-  padding: 0.72rem 2rem 0.72rem 2.4rem;
+  padding: 0.72rem 2.2rem 0.72rem 2.4rem;
   border: 1.5px solid var(--color-line);
   border-radius: var(--radius-sm);
   background-color: var(--color-surface-alt);
@@ -601,6 +647,8 @@ section {
   font-weight: 500;
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition);
+  min-height: 46px;
+  box-sizing: border-box;
 }
 
 .field-control input {
@@ -615,6 +663,8 @@ section {
   color: var(--color-ink);
   transition: border-color var(--transition), background var(--transition),
     box-shadow var(--transition);
+  min-height: 46px;
+  box-sizing: border-box;
 }
 
 .field-control input::placeholder {
@@ -662,11 +712,6 @@ section {
   box-shadow: 0 0 0 3px rgba(18, 163, 122, 0.16);
 }
 
-.btn-search {
-  padding-block: 0.78rem;
-  height: 46px;
-}
-
 .hero-stats {
   display: flex;
   flex-wrap: wrap;
@@ -689,24 +734,24 @@ section {
 /* Hero visual */
 .hero-visual {
   position: relative;
-  min-height: 380px;
+  min-height: 420px;
   display: grid;
   place-items: center;
 }
 
 .preview-card {
-  width: min(340px, 100%);
+  width: min(420px, 100%);
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-line);
-  transform: rotate(-1.5deg);
+  transform: none;
 }
 
 .preview-media {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: var(--color-surface-alt);
 }
@@ -782,14 +827,14 @@ section {
 }
 
 .chip-1 {
-  top: 12%;
-  left: -4%;
+  top: 8%;
+  left: -6%;
   animation: float 5.5s ease-in-out infinite;
 }
 
 .chip-2 {
-  bottom: 12%;
-  right: -3%;
+  bottom: 8%;
+  right: -6%;
   color: var(--color-green-700);
   animation: float 6.5s ease-in-out infinite reverse;
 }
@@ -1410,12 +1455,17 @@ section {
 
   .hero-visual {
     order: -1;
-    min-height: 320px;
+    min-height: 360px;
   }
 
   .hero-title,
   .hero-sub {
     max-width: none;
+  }
+
+  .preview-card {
+    width: min(480px, 100%);
+    max-width: 100%;
   }
 
   .feature-grid {
@@ -1429,6 +1479,27 @@ section {
   .footer-grid {
     grid-template-columns: 1fr 1fr;
     gap: 2.25rem;
+  }
+
+  .search-card {
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+  }
+
+  .search-card .search-field:nth-child(1),
+  .search-card .search-field:nth-child(2),
+  .search-card .search-field:nth-child(3) {
+    grid-column: span 1;
+  }
+
+  .search-card .search-field:nth-child(4) {
+    grid-column: span 2;
+  }
+
+  .btn-search {
+    grid-column: 1 / -1;
+    height: auto;
+    padding-block: 0.78rem;
+    padding-inline: 1.5rem;
   }
 }
 
@@ -1491,11 +1562,25 @@ section {
   }
 
   .search-card {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(140px, 1fr)) minmax(110px, max-content);
+    grid-auto-flow: dense;
+  }
+
+  .search-card .search-field:nth-child(1),
+  .search-card .search-field:nth-child(2) {
+    grid-column: span 1;
+  }
+
+  .search-card .search-field:nth-child(3),
+  .search-card .search-field:nth-child(4) {
+    grid-column: span 1;
   }
 
   .btn-search {
     grid-column: 1 / -1;
+    height: auto;
+    padding-block: 0.78rem;
+    padding-inline: 1.5rem;
   }
 
   .steps {
@@ -1536,10 +1621,22 @@ section {
     grid-template-columns: 1fr;
     padding: 0.85rem;
     gap: 0.6rem;
+    align-items: stretch;
   }
 
   .search-field {
     width: 100%;
+    min-height: auto;
+  }
+
+  .search-field label {
+    min-height: auto;
+  }
+
+  .btn-search {
+    height: auto;
+    padding-block: 0.78rem;
+    padding-inline: 1.5rem;
   }
 
   .hero-stats {

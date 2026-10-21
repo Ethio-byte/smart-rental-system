@@ -99,11 +99,38 @@
                   <option value="Addis Ababa">Addis Ababa</option>
                   <option value="Dire Dawa">Dire Dawa</option>
                   <option value="Hawassa">Hawassa</option>
+                  <option value="Harar">Harar</option>
                   <option value="Adama">Adama</option>
                   <option value="Bahir Dar">Bahir Dar</option>
                   <option value="Mekelle">Mekelle</option>
+                  <option value="Gondar">Gondar</option>
+                  <option value="Jimma">Jimma</option>
+                  <option value="Other city or town">Other city or town</option>
                 </select>
               </div>
+            </div>
+
+            <div class="search-field" id="subCityWrap">
+              <label for="subCity">Sub-city / area</label>
+              <div class="field-control" id="subCitySelectControl">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <select id="subCity" name="subCity">
+                  <option value="">All areas</option>
+                </select>
+              </div>
+              <div class="field-control" id="subCityCustomControl" hidden>
+                <input
+                  id="subCityCustom"
+                  name="subCityCustom"
+                  type="text"
+                  placeholder="Enter area / sub-city"
+                  aria-describedby="subCityCustomHint"
+                />
+              </div>
+              <p class="visually-hidden" id="subCityCustomHint">Enter a custom sub-city, district, or local area.</p>
             </div>
 
             <div class="search-field">
@@ -282,7 +309,7 @@
 
         <div class="property-grid" id="propertyGrid">
           <!-- Card 1 -->
-          <article class="property-card" data-location="Addis Ababa" data-type="Studio Apartment" data-price="9500">
+          <article class="property-card" data-property-id="bole-deluxe-studio" data-city="Addis Ababa" data-sub-city="Bole" data-area="Bole" data-type="Studio Apartment" data-price="9500">
             <div class="property-media media-bole">
               <img src="assets/properties/bole-studio.jpg" alt="Modern studio apartment interior in Bole, Addis Ababa with natural light and contemporary furnishings" loading="lazy" width="400" height="200" />
               <span class="badge badge-sample">Sample listing</span>
@@ -307,7 +334,7 @@
           </article>
 
           <!-- Card 2 -->
-          <article class="property-card" data-location="Dire Dawa" data-type="House" data-price="18000">
+          <article class="property-card" data-property-id="dire-dawa-family-house" data-city="Dire Dawa" data-sub-city="Sabian" data-area="Sabian" data-type="House" data-price="18000">
             <div class="property-media media-dire">
               <img src="assets/properties/dire-house.jpg" alt="Spacious family house exterior in Sabian, Dire Dawa with garden and parking area" loading="lazy" width="400" height="200" />
               <span class="badge badge-sample">Sample listing</span>
@@ -332,7 +359,7 @@
           </article>
 
           <!-- Card 3 -->
-          <article class="property-card" data-location="Hawassa" data-type="Single Room" data-price="4200">
+          <article class="property-card" data-property-id="hawassa-lakeview-room" data-city="Hawassa" data-sub-city="Tabor" data-area="Tabor" data-type="Single Room" data-price="4200">
             <div class="property-media media-hawassa">
               <img src="assets/properties/hawassa-room.jpg" alt="Bright single room in Tabor, Hawassa with natural light, shared kitchen access, and lake area views" loading="lazy" width="400" height="200" />
               <span class="badge badge-sample">Sample listing</span>
