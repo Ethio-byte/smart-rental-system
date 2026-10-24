@@ -128,7 +128,7 @@
     let selectedFiles = [];
     let coverIndex = 0;
 
-    // Sub-city options by city (mirrors script.js ETHIOPIA_LOCATIONS)
+    // Sub-city options by city (only for cities with defined administrative sub-cities)
     const SUB_CITIES_BY_CITY = {
       "Addis Ababa": [
         "Addis Ketema",
@@ -149,52 +149,10 @@
         "Melka Jebdu",
         "Lege Harre",
       ],
-      "Hawassa": [
-        "Addis Ketema",
-        "Bahil Adarash",
-        "Haile",
-        "Hayk Dar",
-        "Mehal Ketema",
-        "Misrak",
-        "Tabor",
-        "Wondogenet",
-      ],
-      Harar: [
-        "Abadir",
-        "Aboker",
-        "Assum Bari",
-        "Badro",
-        "Gidir Megala",
-        "Hamaressa",
-        "Jegol (Walled City)",
-        "Jinela",
-        "Shenkor",
-        "Sofia",
-      ],
-      Adama: ["Adama"],
-      "Bahir Dar": [
-        "Bahir Dar Zuria",
-        "Dagmawi",
-        "Facil",
-        "Gish Abay",
-        "Hidar",
-        "Shum Abo",
-        "Sefene Selam",
-        "Tana",
-      ],
-      Mekelle: [
-        "Adi Haki",
-        "Aynalem",
-        "Hawelti",
-        "Kedamay Weyane",
-        "Quiha",
-        "Semien",
-        "Hadnet",
-        "Ayder",
-      ],
-      Gondar: ["Azezo", "Dabat", "Gondar Zuria", "Maraki", "Teda"],
-      Jimma: ["Jimma"],
     };
+
+    // Cities that have predefined sub-city/dropdown options
+    const CITIES_WITH_SUBCITY_DROPDOWN = new Set(["Addis Ababa", "Dire Dawa"]);
 
     // Woreda field is optional and available for any city where applicable
     const CITIES_WITH_WOREDA = ["Addis Ababa"];
@@ -223,6 +181,35 @@
     function syncCity() {
       const cityValue = city.value;
       const isOtherCity = cityValue === "Other city or town";
+      const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+
+      // No city selected yet: reset to initial HTML state (dropdown visible, custom hidden)
+      if (!cityValue) {
+        subCityWrap.hidden = false;
+        subCity.hidden = false;
+        otherSubCityWrap.hidden = true;
+        if (otherSubCity) {
+          otherSubCity.required = false;
+          otherSubCity.value = "";
+          setFieldError(otherSubCity, "");
+        }
+        if (subCity) {
+          subCity.value = "";
+          setFieldError(subCity, "");
+        }
+        otherCityWrap.hidden = true;
+        if (otherCity) {
+          otherCity.required = false;
+          otherCity.value = "";
+          setFieldError(otherCity, "");
+        }
+        woredaWrap.hidden = true;
+        if (woreda) {
+          woreda.value = "";
+          setFieldError(woreda, "");
+        }
+        return;
+      }
 
       // Other city input
       otherCityWrap.hidden = !isOtherCity;
@@ -234,28 +221,34 @@
         }
       }
 
-      // Sub-city select: always show, but populate differently based on city
-      const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
-      subCityWrap.hidden = false; // Always show local administrative area field
-
-      if (hasSubCities && !isOtherCity) {
-        // Known city with predefined sub-cities: show select with options
+      // Sub-city / district field: show dropdown for Addis Ababa & Dire Dawa, custom input otherwise
+      if (hasSubCityDropdown && !isOtherCity) {
+        // Known city with predefined sub-cities: show select wrapper, hide custom input wrapper
+        subCityWrap.hidden = false;
         populateSubCities(cityValue);
         subCity.hidden = false;
-        // otherSubCityWrap will be shown by syncSubCity when "Other" is selected
+        otherSubCityWrap.hidden = true;
+        if (otherSubCity) {
+          otherSubCity.required = false;
+          otherSubCity.value = "";
+          setFieldError(otherSubCity, "");
+        }
       } else {
-        // Custom city or city without predefined sub-cities: show custom input directly
+        // Custom city or city without predefined sub-cities: hide select wrapper, show custom input wrapper
+        subCityWrap.hidden = true;
         if (subCity) {
           subCity.value = "";
+          subCity.hidden = true;
           setFieldError(subCity, "");
         }
-        subCity.hidden = true;
-        // Show the custom input for sub-city
         otherSubCityWrap.hidden = false;
         if (otherSubCity) {
           otherSubCity.required = true;
         }
       }
+
+      // Sync sub-city dependent state (handles "Other" selection in dropdown)
+      syncSubCity();
 
       // Woreda field: available for any city where applicable
       // Show for Addis Ababa always, and for other cities optionally
@@ -271,10 +264,12 @@
       const isOtherSubCity = subCity && subCity.value === "Other";
       const cityValue = city.value;
       const isOtherCity = cityValue === "Other city or town";
-      const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+      const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
 
-      if (hasSubCities && !isOtherCity) {
+      if (hasSubCityDropdown && !isOtherCity) {
         // Known city with predefined sub-cities: show custom input when "Other" selected
+        // Keep dropdown wrapper visible so user can change selection
+        subCityWrap.hidden = false;
         otherSubCityWrap.hidden = !isOtherSubCity;
         if (otherSubCity) {
           otherSubCity.required = isOtherSubCity;
@@ -284,7 +279,8 @@
           }
         }
       } else {
-        // Custom city or city without predefined sub-cities: custom input is always shown
+        // Custom city or city without predefined sub-cities: custom input wrapper always shown
+        subCityWrap.hidden = true;
         otherSubCityWrap.hidden = false;
         if (otherSubCity) {
           otherSubCity.required = true;
@@ -475,9 +471,9 @@
 
       // Sub-city / local administrative area validation
       const cityValue = city.value;
-      const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
+      const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
 
-      if (hasSubCities && !isOtherCity) {
+      if (hasSubCityDropdown && !isOtherCity) {
         // Known city with predefined sub-cities
         if (subCity.value === "Other") {
           results.push(validateRequired(otherSubCity, "Please enter the sub-city or district."));
@@ -514,7 +510,7 @@
         syncCity();
         validateRequired(city, "Please select a city.");
       });
-      syncCity();
+      // Do NOT call syncCity() on init — city is empty, would show wrong UI
     }
 
     // Sub-city toggle
@@ -523,8 +519,8 @@
         syncSubCity();
         const cityValue = city.value;
         const isOtherCity = cityValue === "Other city or town";
-        const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
-        if (hasSubCities && !isOtherCity) {
+        const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+        if (hasSubCityDropdown && !isOtherCity) {
           if (subCity.value === "Other") {
             // validation will happen on blur/submit
           } else {
@@ -547,8 +543,8 @@
       subCity.addEventListener("blur", () => {
         const cityValue = city.value;
         const isOtherCity = cityValue === "Other city or town";
-        const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
-        if (hasSubCities && !isOtherCity) {
+        const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+        if (hasSubCityDropdown && !isOtherCity) {
           if (subCity.value === "Other") {
             // otherSubCity will be validated on its own blur
           } else {
@@ -561,10 +557,10 @@
       otherSubCity.addEventListener("blur", () => {
         const cityValue = city.value;
         const isOtherCity = cityValue === "Other city or town";
-        const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
-        if (hasSubCities && !isOtherCity && subCity.value === "Other") {
+        const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+        if (hasSubCityDropdown && !isOtherCity && subCity.value === "Other") {
           validateRequired(otherSubCity, "Please enter the sub-city or district.");
-        } else if (!hasSubCities || isOtherCity) {
+        } else if (!hasSubCityDropdown || isOtherCity) {
           // For custom cities or cities without predefined sub-cities, otherSubCity is always required
           validateRequired(otherSubCity, "Please enter the sub-city, district, or local administrative area.");
         }
@@ -602,18 +598,18 @@
           else if (el === otherSubCity) {
             const cityValue = city.value;
             const isOtherCity = cityValue === "Other city or town";
-            const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
-            if (hasSubCities && !isOtherCity && subCity.value === "Other") {
+            const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+            if (hasSubCityDropdown && !isOtherCity && subCity.value === "Other") {
               validateRequired(otherSubCity, "Please enter the sub-city or district.");
-            } else if (!hasSubCities || isOtherCity) {
+            } else if (!hasSubCityDropdown || isOtherCity) {
               validateRequired(otherSubCity, "Please enter the sub-city, district, or local administrative area.");
             }
           }
           else if (el === subCity) {
             const cityValue = city.value;
             const isOtherCity = cityValue === "Other city or town";
-            const hasSubCities = SUB_CITIES_BY_CITY[cityValue] && SUB_CITIES_BY_CITY[cityValue].length > 0;
-            if (hasSubCities && !isOtherCity && subCity.value !== "Other") {
+            const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+            if (hasSubCityDropdown && !isOtherCity && subCity.value !== "Other") {
               validateRequired(subCity, "Please select a sub-city or district.");
             }
           }
