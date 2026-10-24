@@ -187,7 +187,7 @@
       '<ul class="property-meta">' + metaHtml + "</ul>" +
       '<div class="property-foot">' +
       '<p class="property-price">' + escapeHtml(p.priceText) + ' <span>/ month</span></p>' +
-      '<a class="btn btn-outline" href="index.html#properties" aria-label="View details for ' + escapeHtml(p.name) + '">View Details</a>' +
+      '<a class="btn btn-outline" href="property-details.html?id=' + escapeHtml(p.id) + '" aria-label="View details for ' + escapeHtml(p.name) + '">View Details</a>' +
       "</div>" +
       "</div>";
 
