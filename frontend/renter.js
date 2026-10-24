@@ -12,8 +12,8 @@
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
 
   /* ---------------------------- Property data ----------------------------- */
-  // Reuses the existing homepage listings (titles, prices, locations, images).
-  const PROPERTIES = [
+  // Base sample properties (matching homepage and property-details.js).
+  const SAMPLE_PROPERTIES = [
     {
       id: "bole-deluxe-studio",
       name: "Bole Deluxe Studio",
@@ -65,6 +65,100 @@
   ];
 
   const STORAGE_KEY = "smartrental.savedProperties";
+  const LANDLORD_PROPERTIES_KEY = "smartrental.landlordProperties";
+
+  /* ------------------------ Landlord property adapter ---------------------- */
+  // Convert a landlord property (from localStorage) to the renter-facing format.
+  function adaptLandlordProperty(lp) {
+    if (!lp) return null;
+    const city = lp.city || "";
+    const subCity = lp.subCity || "";
+    const area = lp.area || "";
+    const locationParts = [city, subCity, area].filter(Boolean);
+    const location = locationParts.join(", ") || city || "—";
+
+    const meta = [];
+    if (lp.type) meta.push(lp.type);
+    if (lp.bedrooms && lp.bedrooms > 0) meta.push(lp.bedrooms + " Bedroom" + (lp.bedrooms > 1 ? "s" : ""));
+    else if (lp.type === "Studio Apartment" || lp.type === "Single Room" || lp.type === "Shared Room") meta.push("Studio / Single");
+    if (lp.bathrooms && lp.bathrooms > 0) meta.push(lp.bathrooms + " bath" + (lp.bathrooms > 1 ? "s" : ""));
+    if (lp.furnishing) meta.push(lp.furnishing);
+
+    // Determine a type badge for display
+    let typeBadge = lp.type || "Property";
+    if (typeBadge === "Studio Apartment") typeBadge = "Studio";
+    else if (typeBadge === "Single Room" || typeBadge === "Shared Room") typeBadge = "Boarding";
+    else if (typeBadge === "Boarding house") typeBadge = "Boarding";
+
+    // Media class for CSS background fallback
+    const cityKey = (city || "").toLowerCase().replace(/\s+/g, "-");
+    const mediaClass = "media-" + cityKey || "media-default";
+
+    // Use first photo if available, otherwise fall back to a placeholder
+    let image = "assets/properties/placeholder.jpg";
+    let imageAlt = "Property image";
+    if (lp.photos && lp.photos.length > 0) {
+      // Landlord photos are stored as filenames only (not uploaded).
+      // We can't display them, so use a placeholder.
+      image = "assets/properties/placeholder.jpg";
+      imageAlt = lp.title + " (photo preview not available)";
+    } else if (city === "Addis Ababa") {
+      image = "assets/properties/bole-studio.jpg";
+      imageAlt = "Sample property in Addis Ababa";
+    } else if (city === "Dire Dawa") {
+      image = "assets/properties/dire-house.jpg";
+      imageAlt = "Sample property in Dire Dawa";
+    } else if (city === "Hawassa") {
+      image = "assets/properties/hawassa-room.jpg";
+      imageAlt = "Sample property in Hawassa";
+    }
+
+    return {
+      id: lp.id,
+      name: lp.title || "Untitled Property",
+      city: city,
+      subCity: subCity,
+      area: area,
+      location: location,
+      type: lp.type || "Property",
+      typeBadge: typeBadge,
+      price: lp.rent || 0,
+      priceText: "ETB " + Number(lp.rent || 0).toLocaleString(),
+      meta: meta,
+      image: image,
+      imageAlt: imageAlt,
+      mediaClass: mediaClass,
+      // Mark as landlord-created for any special handling
+      _landlord: true,
+      // Store original data for property-details page
+      _original: lp,
+    };
+  }
+
+  function getLandlordProperties() {
+    try {
+      const raw = localStorage.getItem(LANDLORD_PROPERTIES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function getAllProperties() {
+    const landlordProps = getLandlordProperties().map(adaptLandlordProperty).filter(Boolean);
+    return [...SAMPLE_PROPERTIES, ...landlordProps];
+  }
+
+  function getProperty(id) {
+    // Check sample properties first
+    const sample = SAMPLE_PROPERTIES.find((p) => p.id === id);
+    if (sample) return sample;
+    // Then check landlord properties
+    const landlordRaw = getLandlordProperties().find((p) => p.id === id);
+    if (landlordRaw) return adaptLandlordProperty(landlordRaw);
+    return null;
+  }
 
   function getSavedIds() {
     try {
@@ -107,10 +201,6 @@
     }
     saveProperty(id);
     return true;
-  }
-
-  function getProperty(id) {
-    return PROPERTIES.find((p) => p.id === id) || null;
   }
 
   /* ---------------------------- Save button UI ---------------------------- */
@@ -267,12 +357,15 @@
 
   // Expose for debugging / future integration.
   window.SmartRentalSaved = {
-    PROPERTIES: PROPERTIES,
+    SAMPLE_PROPERTIES: SAMPLE_PROPERTIES,
+    getAllProperties: getAllProperties,
+    getProperty: getProperty,
     getSavedIds: getSavedIds,
     isSaved: isSaved,
     saveProperty: saveProperty,
     unsaveProperty: unsaveProperty,
     toggleSaved: toggleSaved,
     renderSavedProperties: renderSavedProperties,
+    applyAllSaveStates: applyAllSaveStates,
   };
 })();

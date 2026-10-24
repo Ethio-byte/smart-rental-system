@@ -550,6 +550,168 @@
     }
   }
 
+  /* -------------------------- Landlord property rendering -------------------- */
+  const LANDLORD_PROPERTIES_KEY = "smartrental.landlordProperties";
+
+    function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, "")
+      .replace(/'/g, "'");
+  }
+
+  function getLandlordProperties() {
+    try {
+      const raw = localStorage.getItem(LANDLORD_PROPERTIES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function adaptLandlordPropertyForHomepage(lp) {
+    if (!lp) return null;
+    const city = lp.city || "";
+    const subCity = lp.subCity || "";
+    const area = lp.area || "";
+    const locationParts = [city, subCity, area].filter(Boolean);
+    const location = locationParts.join(", ") || city || "—";
+
+    const meta = [];
+    if (lp.type) meta.push(lp.type);
+    if (lp.bedrooms && lp.bedrooms > 0) meta.push(lp.bedrooms + " Bedroom" + (lp.bedrooms > 1 ? "s" : ""));
+    else if (lp.type === "Studio Apartment" || lp.type === "Single Room" || lp.type === "Shared Room") meta.push("Studio / Single");
+    if (lp.bathrooms && lp.bathrooms > 0) meta.push(lp.bathrooms + " bath" + (lp.bathrooms > 1 ? "s" : ""));
+    if (lp.furnishing) meta.push(lp.furnishing);
+
+    let typeBadge = lp.type || "Property";
+    if (typeBadge === "Studio Apartment") typeBadge = "Studio";
+    else if (typeBadge === "Single Room" || typeBadge === "Shared Room") typeBadge = "Boarding";
+    else if (typeBadge === "Boarding house") typeBadge = "Boarding";
+
+    const cityKey = (city || "").toLowerCase().replace(/\s+/g, "-");
+    const mediaClass = "media-" + cityKey || "media-default";
+
+    // Use city-based placeholder image
+    let image = "assets/properties/placeholder.jpg";
+    let imageAlt = "Property image";
+    if (city === "Addis Ababa") {
+      image = "assets/properties/bole-studio.jpg";
+      imageAlt = "Sample property in Addis Ababa";
+    } else if (city === "Dire Dawa") {
+      image = "assets/properties/dire-house.jpg";
+      imageAlt = "Sample property in Dire Dawa";
+    } else if (city === "Hawassa") {
+      image = "assets/properties/hawassa-room.jpg";
+      imageAlt = "Sample property in Hawassa";
+    }
+
+    return {
+      id: lp.id,
+      name: lp.title || "Untitled Property",
+      city: city,
+      subCity: subCity,
+      area: area,
+      location: location,
+      type: lp.type || "Property",
+      typeBadge: typeBadge,
+      price: lp.rent || 0,
+      priceText: "ETB " + Number(lp.rent || 0).toLocaleString(),
+      meta: meta,
+      image: image,
+      imageAlt: imageAlt,
+      mediaClass: mediaClass,
+      _landlord: true,
+      _original: lp,
+    };
+  }
+
+  function renderLandlordProperties() {
+    if (!propertyGrid) return;
+
+    const landlordProps = getLandlordProperties().map(adaptLandlordPropertyForHomepage).filter(Boolean);
+    if (landlordProps.length === 0) return;
+
+    landlordProps.forEach((p) => {
+      // Check if already rendered (avoid duplicates on re-render)
+      if (propertyGrid.querySelector('[data-property-id="' + p.id + '"]')) return;
+
+      const article = document.createElement("article");
+      article.className = "property-card";
+      article.setAttribute("data-property-id", p.id);
+      article.setAttribute("data-city", p.city);
+      article.setAttribute("data-sub-city", p.subCity || "");
+      article.setAttribute("data-area", p.area || "");
+      article.setAttribute("data-type", p.type);
+      article.setAttribute("data-price", String(p.price));
+
+      const metaHtml = p.meta.map((m) => "<li>" + escapeHtml(m) + "</li>").join("");
+
+      article.innerHTML =
+        '<div class="property-media ' + escapeHtml(p.mediaClass) + '">' +
+        '<button type="button" class="save-btn" data-save-id="' + escapeHtml(p.id) + '" data-property-name="' + escapeHtml(p.name) + '" aria-pressed="false" aria-label="Save ' + escapeHtml(p.name) + ' to saved properties">' +
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />' +
+        "</svg>" +
+        "</button>" +
+        '<img src="' + escapeHtml(p.image) + '" alt="' + escapeHtml(p.imageAlt) + '" loading="lazy" width="400" height="200" />' +
+        '<span class="badge badge-sample">Sample listing</span>' +
+        '<span class="badge badge-type">' + escapeHtml(p.typeBadge) + "</span>" +
+        "</div>" +
+        '<div class="property-body">' +
+        '<h3 class="property-name">' + escapeHtml(p.name) + "</h3>" +
+        '<p class="property-loc">' +
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>' +
+        escapeHtml(p.location) +
+        "</p>" +
+        '<ul class="property-meta">' + metaHtml + "</ul>" +
+        '<div class="property-foot">' +
+        '<p class="property-price">' + escapeHtml(p.priceText) + ' <span>/ month</span></p>' +
+        '<a class="btn btn-outline" href="property-details.html?id=' + escapeHtml(p.id) + '" aria-label="View details for ' + escapeHtml(p.name) + '">View Details</a>' +
+        "</div>" +
+        "</div>";
+
+      // Missing image fallback
+      const img = article.querySelector(".property-media img");
+      if (img) {
+        img.addEventListener(
+          "error",
+          () => {
+            img.hidden = true;
+            const media = img.parentElement;
+            if (media && !media.querySelector(".media-fallback")) {
+              const fallback = document.createElement("span");
+              fallback.className = "media-fallback";
+              fallback.textContent = "Image unavailable";
+              media.appendChild(fallback);
+            }
+          },
+          { once: true }
+        );
+      }
+
+      propertyGrid.appendChild(article);
+    });
+
+    // Re-apply save states for newly added buttons (renter.js handles this globally)
+    if (window.SmartRentalSaved && typeof window.SmartRentalSaved.applyAllSaveStates === "function") {
+      window.SmartRentalSaved.applyAllSaveStates();
+    }
+  }
+
+  // Render landlord properties on load
+  renderLandlordProperties();
+
+  // Re-render when landlord properties change (cross-tab)
+  window.addEventListener("storage", (event) => {
+    if (event.key === LANDLORD_PROPERTIES_KEY) {
+      renderLandlordProperties();
+    }
+  });
+
   /* ------------------------------- Footer year ----------------------------- */
   const yearEl = $("#year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());

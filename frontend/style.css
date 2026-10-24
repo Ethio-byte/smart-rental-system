@@ -326,6 +326,12 @@ section {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .badge {
   position: absolute;
   display: inline-flex;
@@ -2370,6 +2376,23 @@ section {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.property-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.property-cell strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.property-type {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  text-transform: capitalize;
 }
 
 /* Status badges */

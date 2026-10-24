@@ -4,6 +4,7 @@
    - Photo gallery with main image and thumbnails
    - Save/unsave using existing smartrental.savedProperties localStorage key
    - Handles missing/invalid IDs gracefully
+   - Supports both sample properties and landlord-created properties
    ========================================================================== */
 (function () {
   "use strict";
@@ -14,7 +15,7 @@
   /* ---------------------------- Property Data ----------------------------- */
   // Extended property data with details for the details page.
   // Reuses IDs and base data from renter.js PROPERTIES array.
-  const PROPERTY_DETAILS = {
+  const SAMPLE_PROPERTY_DETAILS = {
     "bole-deluxe-studio": {
       id: "bole-deluxe-studio",
       name: "Bole Deluxe Studio",
@@ -139,6 +140,102 @@
   };
 
   const STORAGE_KEY = "smartrental.savedProperties";
+  const LANDLORD_PROPERTIES_KEY = "smartrental.landlordProperties";
+
+  /* ------------------------ Landlord property adapter ---------------------- */
+  // Convert a landlord property (from localStorage) to the property-details format.
+  function adaptLandlordPropertyForDetails(lp) {
+    if (!lp) return null;
+    const city = lp.city || "";
+    const subCity = lp.subCity || "";
+    const area = lp.area || "";
+    const locationParts = [city, subCity, area].filter(Boolean);
+    const location = locationParts.join(", ") || city || "—";
+
+    const meta = [];
+    if (lp.type) meta.push(lp.type);
+    if (lp.bedrooms && lp.bedrooms > 0) meta.push(lp.bedrooms + " Bedroom" + (lp.bedrooms > 1 ? "s" : ""));
+    else if (lp.type === "Studio Apartment" || lp.type === "Single Room" || lp.type === "Shared Room") meta.push("Studio / Single");
+    if (lp.bathrooms && lp.bathrooms > 0) meta.push(lp.bathrooms + " bath" + (lp.bathrooms > 1 ? "s" : ""));
+    if (lp.furnishing) meta.push(lp.furnishing);
+
+    let typeBadge = lp.type || "Property";
+    if (typeBadge === "Studio Apartment") typeBadge = "Studio";
+    else if (typeBadge === "Single Room" || typeBadge === "Shared Room") typeBadge = "Boarding";
+    else if (typeBadge === "Boarding house") typeBadge = "Boarding";
+
+    const cityKey = (city || "").toLowerCase().replace(/\s+/g, "-");
+    const mediaClass = "media-" + cityKey || "media-default";
+
+    // Build photos array from landlord photos (filenames only)
+    const photos = (lp.photos || []).map((fname, idx) => ({
+      src: "assets/properties/placeholder.jpg",
+      alt: lp.title + " photo " + (idx + 1),
+    }));
+    if (photos.length === 0) {
+      // Fallback to city-based placeholder
+      let fallbackSrc = "assets/properties/placeholder.jpg";
+      let fallbackAlt = "Property image";
+      if (city === "Addis Ababa") {
+        fallbackSrc = "assets/properties/bole-studio.jpg";
+        fallbackAlt = "Sample property in Addis Ababa";
+      } else if (city === "Dire Dawa") {
+        fallbackSrc = "assets/properties/dire-house.jpg";
+        fallbackAlt = "Sample property in Dire Dawa";
+      } else if (city === "Hawassa") {
+        fallbackSrc = "assets/properties/hawassa-room.jpg";
+        fallbackAlt = "Sample property in Hawassa";
+      }
+      photos.push({ src: fallbackSrc, alt: fallbackAlt });
+    }
+
+    return {
+      id: lp.id,
+      name: lp.title || "Untitled Property",
+      city: city,
+      subCity: subCity,
+      area: area,
+      location: location,
+      type: lp.type || "Property",
+      typeBadge: typeBadge,
+      price: lp.rent || 0,
+      priceText: "ETB " + Number(lp.rent || 0).toLocaleString(),
+      meta: meta,
+      image: photos[0].src,
+      imageAlt: photos[0].alt,
+      mediaClass: mediaClass,
+      description: lp.description || "No description provided.",
+      bedrooms: lp.bedrooms || 0,
+      bathrooms: lp.bathrooms || 0,
+      furnishing: lp.furnishing || "Not specified",
+      amenities: [],
+      photos: photos,
+      // Landlord contact info is intentionally NOT exposed to renters
+      landlord: null,
+      _landlord: true,
+      _original: lp,
+    };
+  }
+
+  function getLandlordProperties() {
+    try {
+      const raw = localStorage.getItem(LANDLORD_PROPERTIES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function getPropertyDetails(id) {
+    // Check sample properties first
+    const sample = SAMPLE_PROPERTY_DETAILS[id];
+    if (sample) return sample;
+    // Then check landlord properties
+    const landlordRaw = getLandlordProperties().find((p) => p.id === id);
+    if (landlordRaw) return adaptLandlordPropertyForDetails(landlordRaw);
+    return null;
+  }
 
   /* ---------------------------- Utility Functions -------------------------- */
 function escapeHtml(value) {
@@ -492,7 +589,7 @@ function escapeHtml(value) {
       return;
     }
 
-    const property = PROPERTY_DETAILS[propertyId];
+    const property = getPropertyDetails(propertyId);
     if (!property) {
       showError("No property found with ID '" + escapeHtml(propertyId) + "'. It may have been removed or the link is incorrect.", "Property Not Found");
       return;

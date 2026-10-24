@@ -1,6 +1,6 @@
 /* ==========================================================================
    Smart Rental — Landlord dashboard & Add Property interactions
-   - Client-side only: no data is stored or uploaded
+   - Client-side only: property data stored in localStorage (demo only)
    - No authentication or backend integration
    ========================================================================== */
 (function () {
@@ -8,6 +8,71 @@
 
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
+
+  /* ---------------------------- Property Storage --------------------------- */
+  const LANDLORD_PROPERTIES_KEY = "smartrental.landlordProperties";
+
+  function getLandlordProperties() {
+    try {
+      const raw = localStorage.getItem(LANDLORD_PROPERTIES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function setLandlordProperties(properties) {
+    try {
+      localStorage.setItem(LANDLORD_PROPERTIES_KEY, JSON.stringify(properties));
+    } catch (e) {
+      /* ignore quota / private mode errors */
+    }
+  }
+
+  function generatePropertyId(title) {
+    const base = String(title || "property")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).slice(2, 6);
+    return base + "-" + timestamp + "-" + random;
+  }
+
+  function saveProperty(propertyData) {
+    const properties = getLandlordProperties();
+    const newProperty = {
+      id: generatePropertyId(propertyData.title),
+      ...propertyData,
+      createdAt: new Date().toISOString(),
+      status: "draft",
+    };
+    properties.unshift(newProperty);
+    setLandlordProperties(properties);
+    return newProperty;
+  }
+
+  function updateProperty(propertyId, updates) {
+    const properties = getLandlordProperties();
+    const index = properties.findIndex((p) => p.id === propertyId);
+    if (index === -1) return null;
+    properties[index] = { ...properties[index], ...updates, updatedAt: new Date().toISOString() };
+    setLandlordProperties(properties);
+    return properties[index];
+  }
+
+  function deleteProperty(propertyId) {
+    const properties = getLandlordProperties();
+    const filtered = properties.filter((p) => p.id !== propertyId);
+    setLandlordProperties(filtered);
+    return filtered.length !== properties.length;
+  }
+
+  function getProperty(propertyId) {
+    return getLandlordProperties().find((p) => p.id === propertyId) || null;
+  }
 
   /* ------------------------------- Utilities ------------------------------- */
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -622,6 +687,40 @@
       });
     });
 
+    function collectFormData() {
+      const cityValue = city.value;
+      const isOtherCity = cityValue === "Other city or town";
+      const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+
+      let subCityValue = "";
+      if (hasSubCityDropdown && !isOtherCity) {
+        subCityValue = subCity.value === "Other" ? (otherSubCity.value || "").trim() : subCity.value;
+      } else {
+        subCityValue = (otherSubCity.value || "").trim();
+      }
+
+      const woredaValue = (woreda.value || "").trim();
+      const areaValue = (area.value || "").trim();
+      const landmarkValue = (landmark.value || "").trim();
+
+      return {
+        title: (title.value || "").trim(),
+        type: type.value,
+        city: isOtherCity ? (otherCity.value || "").trim() : cityValue,
+        subCity: subCityValue,
+        woreda: woredaValue,
+        area: areaValue,
+        landmark: landmarkValue,
+        rent: Number(rent.value),
+        furnishing: furnishing.value || "",
+        bedrooms: bedrooms.value ? Number(bedrooms.value) : 0,
+        bathrooms: bathrooms.value ? Number(bathrooms.value) : 0,
+        description: (description.value || "").trim(),
+        phone: (phone.value || "").trim(),
+        photos: selectedFiles.map((f) => f.name),
+      };
+    }
+
     addPropertyForm.addEventListener("submit", (event) => {
       event.preventDefault();
       clearFormMessage(messageEl);
@@ -632,13 +731,263 @@
         return;
       }
 
-      // No backend yet: nothing is saved, uploaded or stored.
+      const propertyData = collectFormData();
+      const savedProperty = saveProperty(propertyData);
+
       showFormMessage(
         messageEl,
         "success",
-        "Your property details look complete. Saving is not available yet — backend integration is required before this listing can be stored. No data was saved and photos were not uploaded."
+        "Property saved locally (demo only). It now appears in your dashboard below. Data is stored in this browser's localStorage and is not uploaded anywhere."
       );
+
+      addPropertyForm.reset();
+      selectedFiles = [];
+      coverIndex = 0;
+      revokeUrls();
+      renderPreview();
+      syncCity();
+
+      setTimeout(() => {
+        window.location.href = "landlord-dashboard.html";
+      }, 1500);
     });
+  }
+
+  /* ---------------------------- Dashboard Rendering -------------------------- */
+  const propertyTableBody = $("#propertyTableBody");
+  const emptyPropertiesRow = $("#emptyPropertiesRow");
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, "")
+      .replace(/'/g, "'");
+  }
+
+  function formatPrice(amount) {
+    return "ETB " + Number(amount).toLocaleString();
+  }
+
+  function formatStatus(status) {
+    const statusMap = {
+      draft: { label: "Draft", class: "status-draft" },
+      published: { label: "Published", class: "status-published" },
+      unlisted: { label: "Unlisted", class: "status-unlisted" },
+    };
+    const s = statusMap[status] || statusMap.draft;
+    return '<span class="status-badge ' + s.class + '">' + s.label + "</span>";
+  }
+
+  function createPropertyRow(property) {
+    const tr = document.createElement("tr");
+    tr.dataset.propertyId = property.id;
+
+    const locationParts = [];
+    if (property.city) locationParts.push(property.city);
+    if (property.subCity) locationParts.push(property.subCity);
+    if (property.area) locationParts.push(property.area);
+    const location = locationParts.join(", ") || "—";
+
+    tr.innerHTML =
+      '<td>' +
+      '<div class="property-cell">' +
+      '<strong>' + escapeHtml(property.title) + "</strong>" +
+      '<span class="property-type">' + escapeHtml(property.type) + "</span>" +
+      "</div>" +
+      "</td>" +
+      '<td>' + escapeHtml(location) + "</td>" +
+      '<td>' + escapeHtml(formatPrice(property.rent)) + "</td>" +
+      '<td>' + formatStatus(property.status) + "</td>" +
+      '<td class="cell-actions">' +
+      '<button type="button" class="btn btn-outline btn-sm edit-btn" data-property-id="' + escapeHtml(property.id) + '" aria-label="Edit ' + escapeHtml(property.title) + '">Edit</button>' +
+      '<button type="button" class="btn btn-outline btn-sm delete-btn" data-property-id="' + escapeHtml(property.id) + '" aria-label="Delete ' + escapeHtml(property.title) + '">Delete</button>' +
+      "</td>";
+
+    return tr;
+  }
+
+  function renderDashboard() {
+    if (!propertyTableBody) return;
+
+    const properties = getLandlordProperties();
+
+    if (emptyPropertiesRow) {
+      emptyPropertiesRow.hidden = properties.length > 0;
+    }
+
+    const existingRows = $$("tr[data-property-id]", propertyTableBody);
+    existingRows.forEach((row) => row.remove());
+
+    if (properties.length === 0) {
+      return;
+    }
+
+    properties.forEach((property) => {
+      propertyTableBody.appendChild(createPropertyRow(property));
+    });
+  }
+
+  /* ---------------------------- Edit/Delete Handlers ----------------------- */
+  function openEditModal(property) {
+    const url = "add-property.html?edit=" + encodeURIComponent(property.id);
+    window.location.href = url;
+  }
+
+  function confirmDelete(propertyId) {
+    const property = getProperty(propertyId);
+    if (!property) return;
+
+    const confirmed = window.confirm(
+      'Delete "' + property.title + '"?\n\nThis action cannot be undone. The property will be permanently removed from your dashboard.'
+    );
+
+    if (confirmed) {
+      deleteProperty(propertyId);
+      renderDashboard();
+    }
+  }
+
+  function setupDashboardActions() {
+    if (!propertyTableBody) return;
+
+    propertyTableBody.addEventListener("click", (event) => {
+      const editBtn = event.target.closest(".edit-btn");
+      const deleteBtn = event.target.closest(".delete-btn");
+
+      if (editBtn) {
+        const propertyId = editBtn.getAttribute("data-property-id");
+        if (propertyId) {
+          openEditModal(getProperty(propertyId));
+        }
+        return;
+      }
+
+      if (deleteBtn) {
+        const propertyId = deleteBtn.getAttribute("data-property-id");
+        if (propertyId) {
+          confirmDelete(propertyId);
+        }
+        return;
+      }
+    });
+  }
+
+  /* ---------------------------- Edit Mode Support -------------------------- */
+  function populateFormForEdit(property) {
+    if (!property) return;
+
+    title.value = property.title || "";
+    type.value = property.type || "";
+    city.value = property.city || "";
+    syncCity();
+
+    const cityValue = property.city;
+    const isOtherCity = cityValue === "Other city or town";
+    const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+
+    if (isOtherCity) {
+      otherCity.value = property.city || "";
+    }
+
+    if (hasSubCityDropdown && !isOtherCity) {
+      const subCities = SUB_CITIES_BY_CITY[cityValue] || [];
+      if (subCities.includes(property.subCity)) {
+        subCity.value = property.subCity;
+      } else {
+        subCity.value = "Other";
+        otherSubCity.value = property.subCity || "";
+      }
+    } else {
+      otherSubCity.value = property.subCity || "";
+    }
+    syncSubCity();
+
+    woreda.value = property.woreda || "";
+    area.value = property.area || "";
+    landmark.value = property.landmark || "";
+    rent.value = property.rent || "";
+    furnishing.value = property.furnishing || "";
+    bedrooms.value = property.bedrooms || "";
+    bathrooms.value = property.bathrooms || "";
+    description.value = property.description || "";
+    phone.value = property.phone || "";
+
+    selectedFiles = [];
+    objectUrls = [];
+    coverIndex = 0;
+    renderPreview();
+
+    validateForm();
+  }
+
+  function initEditMode() {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get("edit");
+    if (!editId) return;
+
+    const property = getProperty(editId);
+    if (!property) {
+      showFormMessage(messageEl, "error", "Property not found. It may have been deleted.");
+      return;
+    }
+
+    const editIndicator = document.createElement("div");
+    editIndicator.className = "form-message form-message--success";
+    editIndicator.hidden = false;
+    editIndicator.innerHTML =
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" /></svg>' +
+      'Editing <strong>' + escapeHtml(property.title) + "</strong>. Changes will update the existing listing.";
+
+    const formHead = $(".auth-head", addPropertyForm);
+    if (formHead) {
+      formHead.insertAdjacentElement("afterend", editIndicator);
+    }
+
+    const submitBtn = $('button[type="submit"]', addPropertyForm);
+    if (submitBtn) {
+      submitBtn.textContent = "Save Changes";
+    }
+
+    const originalSubmitHandler = addPropertyForm.onsubmit;
+    addPropertyForm.removeEventListener("submit", originalSubmitHandler);
+
+    addPropertyForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      clearFormMessage(messageEl);
+
+      if (!validateForm()) {
+        showFormMessage(messageEl, "error", "Please fix the highlighted fields and try again.");
+        focusFirstInvalid(addPropertyForm);
+        return;
+      }
+
+      const propertyData = collectFormData();
+      updateProperty(editId, propertyData);
+
+      showFormMessage(
+        messageEl,
+        "success",
+        "Property updated locally (demo only). Changes are saved in this browser's localStorage."
+      );
+
+      setTimeout(() => {
+        window.location.href = "landlord-dashboard.html";
+      }, 1500);
+    });
+
+    populateFormForEdit(property);
+  }
+
+  /* ---------------------------- Init Dashboard ----------------------------- */
+  if (propertyTableBody) {
+    renderDashboard();
+    setupDashboardActions();
+  }
+
+  if (addPropertyForm) {
+    initEditMode();
   }
 
   /* ------------------------------- Footer year ----------------------------- */
