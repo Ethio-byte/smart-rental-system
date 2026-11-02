@@ -3328,6 +3328,13 @@ img {
   margin-top: 0.5rem;
 }
 
+/* Respect the hidden attribute despite display:grid on state containers */
+.loading-state[hidden],
+.error-state[hidden],
+.property-content[hidden] {
+  display: none;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .property-content {

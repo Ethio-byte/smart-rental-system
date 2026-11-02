@@ -712,6 +712,126 @@
     }
   });
 
+  /* ------------------------- Supabase API Properties ---------------------- */
+
+  async function loadDatabaseProperties() {
+    if (!propertyGrid) return;
+
+    try {
+      const response = await fetch("http://localhost:3000/api/properties");
+
+      if (!response.ok) {
+        throw new Error("API request failed: " + response.status);
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !Array.isArray(result.properties)) {
+        throw new Error("Invalid properties response");
+      }
+
+      result.properties.forEach((property) => {
+        // Avoid duplicates
+        if (propertyGrid.querySelector(
+          '[data-property-id="' + property.id + '"]'
+        )) return;
+
+        const article = document.createElement("article");
+        article.className = "property-card";
+
+        article.dataset.propertyId = property.id;
+        article.dataset.city = property.city || "";
+        article.dataset.subCity = "";
+        article.dataset.area = property.area || "";
+        article.dataset.type = property.property_type || "";
+        article.dataset.price = String(property.rent || 0);
+
+        // Temporary city-based image until Supabase Storage is connected
+        let image = "assets/properties/bole-studio.jpg";
+
+        if (property.city === "Dire Dawa") {
+          image = "assets/properties/dire-house.jpg";
+        } else if (property.city === "Hawassa") {
+          image = "assets/properties/hawassa-room.jpg";
+        }
+
+        const location = [property.city, property.area]
+          .filter(Boolean)
+          .join(", ");
+
+        const name = property.title || "Untitled Property";
+        const price = Number(property.rent || 0).toLocaleString();
+
+        const imageElement = document.createElement("img");
+        imageElement.src = image;
+        imageElement.alt = "Property in " + (property.city || "Ethiopia");
+        imageElement.loading = "lazy";
+
+        const media = document.createElement("div");
+        media.className = "property-media";
+        media.appendChild(imageElement);
+
+        const typeBadge = document.createElement("span");
+        typeBadge.className = "badge badge-type";
+        typeBadge.textContent = property.property_type || "Property";
+        media.appendChild(typeBadge);
+
+        const body = document.createElement("div");
+        body.className = "property-body";
+
+        const heading = document.createElement("h3");
+        heading.className = "property-name";
+        heading.textContent = name;
+
+        const locationText = document.createElement("p");
+        locationText.className = "property-loc";
+        locationText.textContent = location;
+
+        const meta = document.createElement("ul");
+        meta.className = "property-meta";
+
+        [
+          property.bedrooms ? property.bedrooms + " Bedrooms" : "",
+          property.bathrooms ? property.bathrooms + " Bathrooms" : "",
+          property.furnishing || ""
+        ].filter(Boolean).forEach((value) => {
+          const item = document.createElement("li");
+          item.textContent = value;
+          meta.appendChild(item);
+        });
+
+        const footer = document.createElement("div");
+        footer.className = "property-foot";
+
+        const priceText = document.createElement("p");
+        priceText.className = "property-price";
+        priceText.textContent = "ETB " + price + " / month";
+
+        const detailsLink = document.createElement("a");
+        detailsLink.className = "btn btn-outline";
+        detailsLink.href = "property-details.html?id=" +
+          encodeURIComponent(property.id);
+        detailsLink.textContent = "View Details";
+
+        footer.append(priceText, detailsLink);
+        body.append(heading, locationText, meta, footer);
+        article.append(media, body);
+
+        propertyGrid.appendChild(article);
+      });
+
+      // Apply the current search filters to the newly loaded cards
+      if (typeof filterProperties === "function") {
+        filterProperties();
+      }
+
+    } catch (error) {
+      console.error("Could not load properties from the API:", error);
+    }
+  }
+
+  loadDatabaseProperties();
+
   /* ------------------------------- Footer year ----------------------------- */
   const yearEl = $("#year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());

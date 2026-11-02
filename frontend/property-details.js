@@ -237,6 +237,67 @@
     return null;
   }
 
+   function adaptDatabaseProperty(property) {
+     const city = property.city || "";
+     const area = property.area || "";
+
+     const type = property.property_type || "Property";
+
+     // City-based fallback image (matches script.js loadDatabaseProperties behaviour)
+     let image = "assets/properties/bole-studio.jpg";
+     if (city === "Dire Dawa") {
+       image = "assets/properties/dire-house.jpg";
+     } else if (city === "Hawassa") {
+       image = "assets/properties/hawassa-room.jpg";
+     }
+
+     const cityKey = (city || "").toLowerCase().replace(/\\s+/g, "-");
+     const mediaClass = "media-" + (cityKey || "default");
+
+     const meta = [];
+     if (type) meta.push(type);
+     if (Number(property.bedrooms) > 0) {
+       meta.push(Number(property.bedrooms) + " Bedroom" + (Number(property.bedrooms) > 1 ? "s" : ""));
+     } else if (type === "Studio Apartment" || type === "Single Room" || type === "Shared Room" || type === "Studio") {
+       meta.push("Studio / Single");
+     }
+     if (Number(property.bathrooms) > 0) {
+       meta.push(Number(property.bathrooms) + " bath" + (Number(property.bathrooms) > 1 ? "s" : ""));
+     }
+     if (property.furnishing) meta.push(property.furnishing);
+
+     const photos = [{ src: image, alt: "Property in " + (city || "Ethiopia") }];
+
+     return {
+       id: property.id,
+       name: property.title || "Untitled Property",
+       type: type,
+       typeBadge: type,
+       city: city,
+       subCity: "",
+       area: area,
+       location: [city, area].filter(Boolean).join(", "),
+       price: Number(property.rent || 0),
+       priceText: "ETB " + Number(property.rent || 0).toLocaleString(),
+       meta: meta,
+       image: image,
+       imageAlt: "Property in " + (city || "Ethiopia"),
+       mediaClass: mediaClass,
+       bedrooms: Number(property.bedrooms || 0),
+       bathrooms: Number(property.bathrooms || 0),
+       furnishing: property.furnishing || "Not specified",
+       description: property.description || "",
+       amenities: [],
+       photos: photos,
+       landlord: {
+         name: "Property Owner",
+         phone: property.phone || "",
+         email: ""
+       }
+     };
+   }
+
+
   /* ---------------------------- Utility Functions -------------------------- */
 function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -468,7 +529,7 @@ function escapeHtml(value) {
       }
       if (typeof property.bathrooms === "number" && property.bathrooms > 0) {
         facts.push({ label: "Bathrooms", value: String(property.bathrooms) });
-      } else if (property.meta.some(m => m.toLowerCase().includes("shared"))) {
+      } else if (property.meta && property.meta.some(m => m.toLowerCase().includes("shared"))) {
         facts.push({ label: "Bathrooms", value: "Shared" });
       }
       if (property.furnishing) facts.push({ label: "Furnishing", value: property.furnishing });
@@ -577,7 +638,7 @@ function escapeHtml(value) {
   }
 
   /* ---------------------------- Init --------------------------------------- */
-  function init() {
+   async function init() {
     showLoading();
 
     // Get property ID from URL
@@ -589,15 +650,54 @@ function escapeHtml(value) {
       return;
     }
 
-    const property = getPropertyDetails(propertyId);
+  
+    let property = getPropertyDetails(propertyId);
+     
+
+    // If not found locally, check the Express API
     if (!property) {
-      showError("No property found with ID '" + escapeHtml(propertyId) + "'. It may have been removed or the link is incorrect.", "Property Not Found");
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/properties"
+        );
+
+        if (!response.ok) {
+          throw new Error("API request failed: " + response.status);
+        }
+
+        const result = await response.json();
+
+        if (result.success && Array.isArray(result.properties)) {
+          const databaseProperty = result.properties.find(
+            (item) => item.id === propertyId
+          );
+
+          if (databaseProperty) {
+            property = adaptDatabaseProperty(databaseProperty);
+          }
+        }
+      } catch (error) {
+        console.error("Could not load property from API:", error);
+      }
+    }
+
+    if (!property) {
+      showError(
+        "No property found with ID '" + escapeHtml(propertyId) +
+        "'. It may have been removed or the link is incorrect.",
+        "Property Not Found"
+      );
       return;
     }
 
     renderProperty(property);
+    console.log("Property passed to renderProperty:", property);
+console.log("Property content element:", $("#propertyContent"));
+console.log("Loading element:", $("#loadingState"));
+console.log("Error element:", $("#errorState"));
     setupSaveButton();
     showContent();
+
 
     // Sync save state across tabs
     window.addEventListener("storage", (event) => {
