@@ -107,24 +107,81 @@
       const okPassword = validateRequired(password, "Please enter your password.");
       return okEmail && okPassword;
     }
+ 
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearFormMessage(messageEl);
 
-    loginForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      clearFormMessage(messageEl);
+  if (!validateLogin()) {
+    showFormMessage(
+      messageEl,
+      "error",
+      "Please fix the highlighted fields and try again."
+    );
+    focusFirstInvalid(loginForm);
+    return;
+  }
 
-      if (!validateLogin()) {
-        showFormMessage(messageEl, "error", "Please fix the highlighted fields and try again.");
-        focusFirstInvalid(loginForm);
-        return;
-      }
+   const emailInput = document.getElementById("loginEmail");
+const passwordInput = document.getElementById("loginPassword");
+  const submitButton = loginForm.querySelector('button[type="submit"]');
 
-      // No backend yet, so we do NOT log anyone in or store anything.
-      showFormMessage(
-        messageEl,
-        "success",
-        "Looks good! This is a demo only — you are not actually logged in, and your password was not saved. Real authentication will be added later."
+  try {
+    if (submitButton) submitButton.disabled = true;
+
+    // Sign in using Supabase Authentication
+    const { data, error } =
+      await window.supabaseClient.auth.signInWithPassword({
+        email: emailInput.value.trim(),
+        password: passwordInput.value
+      });
+
+    if (error) throw error;
+
+    const user = data.user;
+    const metadata = user.user_metadata || {};
+
+    const accountType = metadata.account_type || "renter";
+
+    // Create or update the user's profile
+    const { error: profileError } = await window.supabaseClient
+      .from("Profiles")
+      .upsert(
+        {
+          id: user.id,
+          "full name": metadata.full_name || "",
+          phone: metadata.phone || "",
+          Account_type: accountType
+        },
+        { onConflict: "id" }
       );
-    });
+
+    if (profileError) throw profileError;
+
+    showFormMessage(
+      messageEl,
+      "success",
+      "Login successful! Redirecting..."
+    );
+
+    window.location.href =
+      accountType === "landlord"
+        ? "landlord-dashboard.html"
+        : "renter-dashboard.html";
+
+  } catch (error) {
+    console.error("Login error:", error);
+
+    showFormMessage(
+      messageEl,
+      "error",
+      error.message || "Login failed. Please try again."
+    );
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
+});
+
 
     // Validate a field once the user leaves it.
     email.addEventListener("blur", () => validateEmail(email));
@@ -177,27 +234,66 @@
       return results.every(Boolean);
     }
 
-    registerForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      clearFormMessage(messageEl);
+registerForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearFormMessage(messageEl);
 
-      if (!validateRegister()) {
-        showFormMessage(messageEl, "error", "Please fix the highlighted fields and try again.");
-        focusFirstInvalid(registerForm);
-        return;
-      }
+  if (!validateRegister()) {
+    showFormMessage(
+      messageEl,
+      "error",
+      "Please fix the highlighted fields and try again."
+    );
+    focusFirstInvalid(registerForm);
+    return;
+  }
 
-      // No backend yet: nothing is submitted, created or stored.
-      const accountType = $('input[name="accountType"]:checked', registerForm);
-      const role = accountType ? accountType.value : "renter";
-      showFormMessage(
-        messageEl,
-        "success",
-        "Looks good! This is a demo only — no " +
-          role +
-          " account has been created and nothing you typed was stored. Real registration will be added later."
-      );
-    });
+  const accountType = $('input[name="accountType"]:checked', registerForm);
+  const role = accountType ? accountType.value : "renter";
+
+  const submitButton = $('button[type="submit"]', registerForm);
+
+  try {
+    if (submitButton) submitButton.disabled = true;
+
+    const { data, error } =
+      await window.supabaseClient.auth.signUp({
+        email: email.value.trim(),
+        password: password.value,
+        options: {
+          data: {
+            full_name: fullName.value.trim(),
+            phone: phone.value.trim(),
+            account_type: role
+          }
+        }
+      });
+
+    if (error) throw error;
+
+    showFormMessage(
+      messageEl,
+      "success",
+      "Registration successful! Please check your email and confirm your account before logging in."
+    );
+
+    registerForm.reset();
+
+  } catch (error) {
+    console.error("Registration error:", error);
+
+    showFormMessage(
+      messageEl,
+      "error",
+      error.message || "Registration failed. Please try again."
+    );
+
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
+});
+
+     
 
     // Field-level validation on blur.
     fullName.addEventListener("blur", () => validateRequired(fullName, "Please enter your full name."));
