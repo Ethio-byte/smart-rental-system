@@ -312,7 +312,14 @@ function escapeHtml(value) {
     return "ETB " + Number(amount).toLocaleString();
   }
 
-  function getSavedIds() {
+  async function getSavedIds() {
+    if (window.SmartRentalSaved && typeof window.SmartRentalSaved.getSavedIds === "function") {
+      try {
+        return await window.SmartRentalSaved.getSavedIds();
+      } catch (e) {
+        /* fall through to local storage */
+      }
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
@@ -330,29 +337,53 @@ function escapeHtml(value) {
     }
   }
 
-  function isSaved(id) {
-    return getSavedIds().indexOf(id) !== -1;
+  async function isSaved(id) {
+    if (window.SmartRentalSaved && typeof window.SmartRentalSaved.isSaved === "function") {
+      try {
+        return await window.SmartRentalSaved.isSaved(id);
+      } catch (e) {
+        /* fall through to local storage */
+      }
+    }
+    const ids = await getSavedIds();
+    return ids.indexOf(id) !== -1;
   }
 
-  function saveProperty(id) {
-    const ids = getSavedIds();
+  async function saveProperty(id) {
+    if (window.SmartRentalSaved && typeof window.SmartRentalSaved.saveProperty === "function") {
+      try {
+        return await window.SmartRentalSaved.saveProperty(id);
+      } catch (e) {
+        /* fall through to local storage */
+      }
+    }
+    const ids = await getSavedIds();
     if (ids.indexOf(id) === -1) {
       ids.push(id);
       setSavedIds(ids);
     }
+    return true;
   }
 
-  function unsaveProperty(id) {
-    setSavedIds(getSavedIds().filter((x) => x !== id));
+  async function unsaveProperty(id) {
+    if (window.SmartRentalSaved && typeof window.SmartRentalSaved.unsaveProperty === "function") {
+      try {
+        await window.SmartRentalSaved.unsaveProperty(id);
+        return;
+      } catch (e) {
+        /* fall through to local storage */
+      }
+    }
+    setSavedIds((await getSavedIds()).filter((x) => x !== id));
   }
 
-  function toggleSaved(id) {
-    if (isSaved(id)) {
-      unsaveProperty(id);
+  async function toggleSaved(id) {
+    if (await isSaved(id)) {
+      await unsaveProperty(id);
       return false;
     }
-    saveProperty(id);
-    return true;
+    const saved = await saveProperty(id);
+    return saved;
   }
 
   function applySaveState(btn, saved) {
@@ -485,7 +516,7 @@ function escapeHtml(value) {
   }
 
   /* ---------------------------- Render Functions --------------------------- */
-  function renderProperty(property) {
+   async function renderProperty(property) {
     // Update page title and breadcrumb
     document.title = property.name + " — Smart Rental";
     const breadcrumbCurrent = $("#breadcrumbCurrent");
@@ -511,7 +542,7 @@ function escapeHtml(value) {
     if (saveBtn) {
       saveBtn.setAttribute("data-save-id", property.id);
       saveBtn.setAttribute("data-property-name", property.name);
-      applySaveState(saveBtn, isSaved(property.id));
+      applySaveState(saveBtn, await isSaved(property.id));
     }
 
     // Key facts
@@ -623,18 +654,18 @@ function escapeHtml(value) {
     const saveBtn = $("#saveBtn");
     if (!saveBtn) return;
 
-    saveBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = saveBtn.getAttribute("data-save-id");
-      if (!id) return;
-      const nowSaved = toggleSaved(id);
-      applySaveState(saveBtn, nowSaved);
+     saveBtn.addEventListener("click", async (e) => {
+       e.preventDefault();
+       e.stopPropagation();
+       const id = saveBtn.getAttribute("data-save-id");
+       if (!id) return;
+       const nowSaved = await toggleSaved(id);
+       applySaveState(saveBtn, nowSaved);
 
-      // Also update any save buttons on other pages (via storage event in renter.js)
-      // Dispatch a custom event for same-page sync
-      window.dispatchEvent(new CustomEvent("smartrental:save-changed", { detail: { id, saved: nowSaved } }));
-    });
+       // Also update any save buttons on other pages (via storage event in renter.js)
+       // Dispatch a custom event for same-page sync
+       window.dispatchEvent(new CustomEvent("smartrental:save-changed", { detail: { id, saved: nowSaved } }));
+     });
   }
 
   /* ---------------------------- Init --------------------------------------- */
@@ -690,7 +721,7 @@ function escapeHtml(value) {
       return;
     }
 
-    renderProperty(property);
+     await renderProperty(property);
     console.log("Property passed to renderProperty:", property);
 console.log("Property content element:", $("#propertyContent"));
 console.log("Loading element:", $("#loadingState"));
@@ -700,12 +731,12 @@ console.log("Error element:", $("#errorState"));
 
 
     // Sync save state across tabs
-    window.addEventListener("storage", (event) => {
+    window.addEventListener("storage", async (event) => {
       if (event.key === STORAGE_KEY) {
         const saveBtn = $("#saveBtn");
         if (saveBtn) {
           const id = saveBtn.getAttribute("data-save-id");
-          if (id) applySaveState(saveBtn, isSaved(id));
+          if (id) applySaveState(saveBtn, await isSaved(id));
         }
       }
     });

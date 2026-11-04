@@ -1,9 +1,7 @@
 /* ==========================================================================
-   Smart Rental — Renter dashboard & saved properties (frontend-only)
-   - Temporary browser-local storage (localStorage) for saved property ids.
-   - No accounts, passwords, or personal data are stored.
-   - Saved properties will be connected to authenticated renter accounts via
-     Supabase in a later phase.
+   Smart Rental — Renter dashboard & saved properties
+   - Saved properties are persisted per authenticated renter in Supabase.
+   - Non-database (sample/landlord) listings keep browser-local fallback.
    ========================================================================== */
 (function () {
   "use strict";
@@ -12,7 +10,6 @@
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
 
   /* ---------------------------- Property data ----------------------------- */
-  // Base sample properties (matching homepage and property-details.js).
   const SAMPLE_PROPERTIES = [
     {
       id: "bole-deluxe-studio",
@@ -67,8 +64,9 @@
   const STORAGE_KEY = "smartrental.savedProperties";
   const LANDLORD_PROPERTIES_KEY = "smartrental.landlordProperties";
 
+  const supabase = window.supabaseClient || null;
+
   /* ------------------------ Landlord property adapter ---------------------- */
-  // Convert a landlord property (from localStorage) to the renter-facing format.
   function adaptLandlordProperty(lp) {
     if (!lp) return null;
     const city = lp.city || "";
@@ -84,22 +82,17 @@
     if (lp.bathrooms && lp.bathrooms > 0) meta.push(lp.bathrooms + " bath" + (lp.bathrooms > 1 ? "s" : ""));
     if (lp.furnishing) meta.push(lp.furnishing);
 
-    // Determine a type badge for display
     let typeBadge = lp.type || "Property";
     if (typeBadge === "Studio Apartment") typeBadge = "Studio";
     else if (typeBadge === "Single Room" || typeBadge === "Shared Room") typeBadge = "Boarding";
     else if (typeBadge === "Boarding house") typeBadge = "Boarding";
 
-    // Media class for CSS background fallback
     const cityKey = (city || "").toLowerCase().replace(/\s+/g, "-");
     const mediaClass = "media-" + cityKey || "media-default";
 
-    // Use first photo if available, otherwise fall back to a placeholder
     let image = "assets/properties/placeholder.jpg";
     let imageAlt = "Property image";
     if (lp.photos && lp.photos.length > 0) {
-      // Landlord photos are stored as filenames only (not uploaded).
-      // We can't display them, so use a placeholder.
       image = "assets/properties/placeholder.jpg";
       imageAlt = lp.title + " (photo preview not available)";
     } else if (city === "Addis Ababa") {
@@ -128,9 +121,7 @@
       image: image,
       imageAlt: imageAlt,
       mediaClass: mediaClass,
-      // Mark as landlord-created for any special handling
       _landlord: true,
-      // Store original data for property-details page
       _original: lp,
     };
   }
@@ -151,16 +142,67 @@
   }
 
   function getProperty(id) {
-    // Check sample properties first
     const sample = SAMPLE_PROPERTIES.find((p) => p.id === id);
     if (sample) return sample;
-    // Then check landlord properties
     const landlordRaw = getLandlordProperties().find((p) => p.id === id);
     if (landlordRaw) return adaptLandlordProperty(landlordRaw);
     return null;
   }
 
-  function getSavedIds() {
+  function adaptDatabaseProperty(property) {
+    if (!property) return null;
+    const city = property.city || "";
+    const area = property.area || "";
+    const type = property.property_type || "Property";
+
+    let image = "assets/properties/bole-studio.jpg";
+    if (city === "Dire Dawa") {
+      image = "assets/properties/dire-house.jpg";
+    } else if (city === "Hawassa") {
+      image = "assets/properties/hawassa-room.jpg";
+    }
+
+    const cityKey = (city || "").toLowerCase().replace(/\s+/g, "-");
+    const mediaClass = "media-" + (cityKey || "default");
+
+    const meta = [];
+    if (type) meta.push(type);
+    if (Number(property.bedrooms) > 0) {
+      meta.push(Number(property.bedrooms) + " Bedroom" + (Number(property.bedrooms) > 1 ? "s" : ""));
+    } else if (type === "Studio Apartment" || type === "Single Room" || type === "Shared Room" || type === "Studio") {
+      meta.push("Studio / Single");
+    }
+    if (Number(property.bathrooms) > 0) {
+      meta.push(Number(property.bathrooms) + " bath" + (Number(property.bathrooms) > 1 ? "s" : ""));
+    }
+    if (property.furnishing) meta.push(property.furnishing);
+
+    return {
+      id: property.id,
+      name: property.title || "Untitled Property",
+      city: city,
+      subCity: "",
+      area: area,
+      location: [city, area].filter(Boolean).join(", "),
+      type: type,
+      typeBadge: type,
+      price: Number(property.rent || 0),
+      priceText: "ETB " + Number(property.rent || 0).toLocaleString(),
+      meta: meta,
+      image: image,
+      imageAlt: "Property in " + (city || "Ethiopia"),
+      mediaClass: mediaClass,
+      _database: true,
+      _original: property,
+    };
+  }
+
+  /* ---------------------------- Saved property IDs ------------------------ */
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+  }
+
+  function getLocalSavedIds() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
@@ -170,7 +212,7 @@
     }
   }
 
-  function setSavedIds(ids) {
+  function setLocalSavedIds(ids) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
     } catch (e) {
@@ -178,29 +220,137 @@
     }
   }
 
-  function isSaved(id) {
-    return getSavedIds().indexOf(id) !== -1;
-  }
-
-  function saveProperty(id) {
-    const ids = getSavedIds();
-    if (ids.indexOf(id) === -1) {
-      ids.push(id);
-      setSavedIds(ids);
+  async function getCurrentUser() {
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data || !data.user) return null;
+      return data.user;
+    } catch (e) {
+      return null;
     }
   }
 
-  function unsaveProperty(id) {
-    setSavedIds(getSavedIds().filter((x) => x !== id));
+  async function getDbSavedIds() {
+    const user = await getCurrentUser();
+    if (!user || !supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from("saved_properties")
+        .select("property_id")
+        .eq("user_id", user.id);
+      if (error) {
+        console.error("Could not load saved properties:", error.message);
+        return [];
+      }
+      return (data || [])
+        .map((row) => row.property_id)
+        .filter((id) => typeof id === "string");
+    } catch (e) {
+      console.error("Could not load saved properties:", e);
+      return [];
+    }
   }
 
-  function toggleSaved(id) {
-    if (isSaved(id)) {
-      unsaveProperty(id);
+  async function getSavedIds() {
+    const dbIds = await getDbSavedIds();
+    const localIds = getLocalSavedIds().filter((id) => !isUuid(id));
+    return [...new Set([...dbIds, ...localIds])];
+  }
+
+  async function isSaved(id) {
+    const ids = await getSavedIds();
+    return ids.indexOf(id) !== -1;
+  }
+
+  async function saveProperty(id) {
+    if (!id) return false;
+
+    if (!isUuid(id)) {
+      const ids = getLocalSavedIds().filter((x) => !isUuid(x));
+      if (ids.indexOf(id) === -1) ids.push(id);
+      setLocalSavedIds(ids);
+      return true;
+    }
+
+    const user = await getCurrentUser();
+    if (!user || !supabase) return false;
+
+    try {
+      const { data: property, error: propertyError } = await supabase
+        .from("properties")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (propertyError || !property) {
+        console.error("Cannot save unknown property:", propertyError || id);
+        return false;
+      }
+
+      const { data: existing, error: existingError } = await supabase
+        .from("saved_properties")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("property_id", id)
+        .maybeSingle();
+
+      if (existingError) {
+        console.error("Could not check saved property:", existingError.message);
+        return false;
+      }
+
+      if (existing) return true;
+
+      const { error: insertError } = await supabase
+        .from("saved_properties")
+        .insert({ user_id: user.id, property_id: id });
+
+      if (insertError) {
+        console.error("Could not save property:", insertError.message);
+        return false;
+      }
+
+      setLocalSavedIds(getLocalSavedIds().filter((x) => x !== id));
+      return true;
+    } catch (e) {
+      console.error("Could not save property:", e);
       return false;
     }
-    saveProperty(id);
-    return true;
+  }
+
+  async function unsaveProperty(id) {
+    if (!id) return;
+
+    setLocalSavedIds(getLocalSavedIds().filter((x) => x !== id));
+
+    if (!isUuid(id)) return;
+
+    const user = await getCurrentUser();
+    if (!user || !supabase) return;
+
+    try {
+      const { error } = await supabase
+        .from("saved_properties")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("property_id", id);
+
+      if (error) {
+        console.error("Could not remove saved property:", error.message);
+      }
+    } catch (e) {
+      console.error("Could not remove saved property:", e);
+    }
+  }
+
+  async function toggleSaved(id) {
+    if (await isSaved(id)) {
+      await unsaveProperty(id);
+      return false;
+    }
+    const saved = await saveProperty(id);
+    return saved;
   }
 
   /* ---------------------------- Save button UI ---------------------------- */
@@ -214,25 +364,44 @@
     );
   }
 
-  function applyAllSaveStates() {
+  async function applyAllSaveStates() {
+    let ids = [];
+    try {
+      ids = await getSavedIds();
+    } catch (e) {
+      ids = [];
+    }
+    const savedSet = new Set(ids);
     $$(".save-btn").forEach((btn) => {
-      applySaveState(btn, isSaved(btn.getAttribute("data-save-id")));
+      applySaveState(btn, savedSet.has(btn.getAttribute("data-save-id")));
     });
   }
 
-  // Event delegation for save/unsave clicks (works for static + rendered cards).
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const btn = event.target && event.target.closest ? event.target.closest(".save-btn") : null;
     if (!btn) return;
     event.preventDefault();
     event.stopPropagation();
+
     const id = btn.getAttribute("data-save-id");
     if (!id) return;
-    const nowSaved = toggleSaved(id);
-    $$(".save-btn").forEach((b) => {
-      if (b.getAttribute("data-save-id") === id) applySaveState(b, nowSaved);
-    });
-    renderSavedProperties();
+
+    btn.disabled = true;
+    try {
+      const nowSaved = await toggleSaved(id);
+      const actuallySaved = await isSaved(id);
+      $$(".save-btn").forEach((b) => {
+        if (b.getAttribute("data-save-id") === id) applySaveState(b, actuallySaved);
+      });
+      if (nowSaved !== actuallySaved) {
+        // Keep UI consistent with the database state.
+      }
+      await renderSavedProperties();
+    } catch (e) {
+      console.error("Could not update saved property:", e);
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   /* -------------------------- Dashboard rendering ------------------------- */
@@ -281,7 +450,6 @@
       "</div>" +
       "</div>";
 
-    // Missing image fallback (mirrors script.js behaviour).
     const img = article.querySelector(".property-media img");
     if (img) {
       img.addEventListener(
@@ -303,38 +471,95 @@
     return article;
   }
 
-  function renderSavedProperties() {
+  async function renderSavedProperties() {
     const grid = $("#savedPropertiesGrid");
     const empty = $("#savedEmptyState");
     if (!grid) return;
 
-    const savedIds = getSavedIds();
-    const savedProps = savedIds.map(getProperty).filter(Boolean);
-
     grid.innerHTML = "";
-
-    if (savedProps.length === 0) {
-      grid.hidden = true;
-      if (empty) empty.hidden = false;
-      return;
+    grid.hidden = true;
+    if (empty) {
+      empty.hidden = false;
+      const heading = empty.querySelector("h3");
+      const text = empty.querySelector("p");
+      const link = empty.querySelector("a");
+      if (heading) heading.textContent = "Loading saved properties…";
+      if (text) text.textContent = "Please wait while we fetch your saved listings.";
+      if (link) link.hidden = true;
     }
 
-    grid.hidden = false;
-    if (empty) empty.hidden = true;
+    try {
+      const savedIds = await getSavedIds();
 
-    savedProps.forEach((p) => {
-      grid.appendChild(createPropertyCard(p));
-    });
+      const dbIds = savedIds.filter(isUuid);
+      let dbProps = [];
+      if (dbIds.length > 0 && supabase) {
+        const { data, error } = await supabase
+          .from("properties")
+          .select("*")
+          .in("id", dbIds);
 
-    applyAllSaveStates();
+        if (error) throw error;
+        dbProps = (data || []).map(adaptDatabaseProperty).filter(Boolean);
+      }
+
+      const localProps = savedIds
+        .filter((id) => !isUuid(id))
+        .map(getProperty)
+        .filter(Boolean);
+
+      const propertyMap = new Map();
+      dbProps.forEach((p) => propertyMap.set(p.id, p));
+      localProps.forEach((p) => propertyMap.set(p.id, p));
+
+      const savedProps = savedIds.map((id) => propertyMap.get(id)).filter(Boolean);
+
+      grid.innerHTML = "";
+
+      if (savedProps.length === 0) {
+        grid.hidden = true;
+        if (empty) {
+          empty.hidden = false;
+          const heading = empty.querySelector("h3");
+          const text = empty.querySelector("p");
+          const link = empty.querySelector("a");
+          if (heading) heading.textContent = "No saved properties yet";
+          if (text) text.textContent = "You have not saved any properties. Browse the available listings and use the heart button on a property card to bookmark it. Your saved listings will appear here.";
+          if (link) link.hidden = false;
+        }
+        await applyAllSaveStates();
+        return;
+      }
+
+      grid.hidden = false;
+      if (empty) empty.hidden = true;
+
+      savedProps.forEach((p) => {
+        grid.appendChild(createPropertyCard(p));
+      });
+
+      await applyAllSaveStates();
+    } catch (error) {
+      console.error("Could not render saved properties:", error);
+      grid.innerHTML = "";
+      grid.hidden = true;
+      if (empty) {
+        empty.hidden = false;
+        const heading = empty.querySelector("h3");
+        const text = empty.querySelector("p");
+        const link = empty.querySelector("a");
+        if (heading) heading.textContent = "Could not load saved properties";
+        if (text) text.textContent = "Please try again later.";
+        if (link) link.hidden = true;
+      }
+    }
   }
 
   /* ------------------------------ Init ----------------------------------- */
-  function init() {
-    applyAllSaveStates();
-    renderSavedProperties();
+  async function init() {
+    await applyAllSaveStates();
+    await renderSavedProperties();
 
-    // Keep multiple tabs in sync.
     window.addEventListener("storage", (event) => {
       if (event.key === STORAGE_KEY) {
         applyAllSaveStates();
@@ -342,7 +567,6 @@
       }
     });
 
-    // Footer year (in case page-specific scripts are absent).
     const yearEl = $("#year");
     if (yearEl && !yearEl.textContent) {
       yearEl.textContent = String(new Date().getFullYear());
@@ -350,12 +574,13 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", () => {
+      init();
+    });
   } else {
     init();
   }
 
-  // Expose for debugging / future integration.
   window.SmartRentalSaved = {
     SAMPLE_PROPERTIES: SAMPLE_PROPERTIES,
     getAllProperties: getAllProperties,
@@ -367,5 +592,6 @@
     toggleSaved: toggleSaved,
     renderSavedProperties: renderSavedProperties,
     applyAllSaveStates: applyAllSaveStates,
+    adaptDatabaseProperty: adaptDatabaseProperty,
   };
 })();
