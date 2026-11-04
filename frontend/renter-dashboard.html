@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+  document.documentElement.classList.add("auth-pending");
+</script>
+
+<style>
+  html.auth-pending body {
+    visibility: hidden;
+  }
+</style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0b6b52" />
@@ -42,7 +51,7 @@
           <li><a class="nav-link is-active" href="renter-dashboard.html" aria-current="page">Dashboard</a></li>
         </ul>
         <div class="nav-actions">
-          <a class="btn btn-ghost" href="login.html">Login</a>
+          <button class="btn btn-ghost" type="button" onclick="window.logoutUser()">Logout</button>
           <a class="btn btn-primary" href="index.html#properties">Browse Properties</a>
         </div>
       </nav>
@@ -167,7 +176,10 @@
     </div>
   </footer>
 
-  <script src="script.js"></script>
-  <script src="renter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="auth-guard.js"></script>
+<script src="script.js"></script>
+<script src="renter.js"></script>
 </body>
 </html>

@@ -233,11 +233,12 @@
   if (navToggle && primaryNav) {
     navToggle.addEventListener("click", toggleMenu);
 
-    // Close when a link inside the menu is chosen (mobile)
-    $$("a", primaryNav).forEach((link) => {
-      link.addEventListener("click", () => {
-        if (window.matchMedia("(max-width: 860px)").matches) closeMenu();
-      });
+    // Close when a link inside the menu is chosen (mobile) — delegated so
+    // dynamically added auth links (Dashboard / Logout) also close the menu.
+    primaryNav.addEventListener("click", (event) => {
+      if (event.target.closest("a") && window.matchMedia("(max-width: 860px)").matches) {
+        closeMenu();
+      }
     });
 
     // Close on outside click
