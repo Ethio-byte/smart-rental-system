@@ -1113,6 +1113,9 @@
       '<td>' + escapeHtml(formatPrice(property.rent)) + "</td>" +
       '<td>' + formatStatus(property.status) + "</td>" +
       '<td class="cell-actions">' +
+      (property.status === "published"
+        ? '<button type="button" class="btn btn-outline btn-sm unpublish-btn" data-property-id="' + escapeHtml(property.id) + '" data-status-action="unpublish" aria-label="Unpublish ' + escapeHtml(property.title) + '">Unpublish</button>'
+        : '<button type="button" class="btn btn-outline btn-sm publish-btn" data-property-id="' + escapeHtml(property.id) + '" data-status-action="publish" aria-label="Publish ' + escapeHtml(property.title) + '">Publish</button>') +
       '<button type="button" class="btn btn-outline btn-sm edit-btn" data-property-id="' + escapeHtml(property.id) + '" aria-label="Edit ' + escapeHtml(property.title) + '">Edit</button>' +
       '<button type="button" class="btn btn-outline btn-sm delete-btn" data-property-id="' + escapeHtml(property.id) + '" aria-label="Delete ' + escapeHtml(property.title) + '">Delete</button>' +
       "</td>";
@@ -1326,12 +1329,83 @@
     }
   }
 
+  async function updatePropertyStatus(propertyId, nextStatus, triggerBtn) {
+    const isSupabaseStatusUpdate = isUuid(propertyId);
+    const property = isSupabaseStatusUpdate
+      ? dashboardProperties.find((p) => p.id === propertyId) || null
+      : getProperty(propertyId);
+    if (!property) return;
+
+    if (triggerBtn) {
+      triggerBtn.disabled = true;
+      triggerBtn.textContent = nextStatus === "published" ? "Publishing..." : "Unpublishing...";
+    }
+
+    try {
+      if (isSupabaseStatusUpdate) {
+        if (!supabase) throw new Error("Supabase client is not available.");
+
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+
+        const user = authData && authData.user;
+        if (!user) throw new Error("You must be signed in to update a property.");
+
+        const { data: updatedRows, error: updateError } = await supabase
+          .from("properties")
+          .update({ status: nextStatus })
+          .eq("id", propertyId)
+          .eq("owner_id", user.id)
+          .select();
+
+        if (updateError) throw updateError;
+        if (!updatedRows || updatedRows.length === 0) {
+          throw new Error("Status update failed. You may not own this property.");
+        }
+
+        const index = dashboardProperties.findIndex((p) => p.id === propertyId);
+        if (index !== -1) {
+          dashboardProperties[index].status = updatedRows[0].status || nextStatus;
+        }
+        renderDashboard();
+      } else {
+        updateProperty(propertyId, { status: nextStatus });
+        renderDashboard();
+      }
+    } catch (err) {
+      console.error("Could not update property status:", err);
+      window.alert((err && err.message) || "Could not update property status. Please try again.");
+      if (triggerBtn) {
+        triggerBtn.disabled = false;
+        triggerBtn.textContent = nextStatus === "published" ? "Publish" : "Unpublish";
+      }
+    }
+  }
+
   function setupDashboardActions() {
     if (!propertyTableBody) return;
 
     propertyTableBody.addEventListener("click", (event) => {
       const editBtn = event.target.closest(".edit-btn");
       const deleteBtn = event.target.closest(".delete-btn");
+      const publishBtn = event.target.closest(".publish-btn");
+      const unpublishBtn = event.target.closest(".unpublish-btn");
+
+      if (publishBtn) {
+        const propertyId = publishBtn.getAttribute("data-property-id");
+        if (propertyId) {
+          updatePropertyStatus(propertyId, "published", publishBtn);
+        }
+        return;
+      }
+
+      if (unpublishBtn) {
+        const propertyId = unpublishBtn.getAttribute("data-property-id");
+        if (propertyId) {
+          updatePropertyStatus(propertyId, "draft", unpublishBtn);
+        }
+        return;
+      }
 
       if (editBtn) {
         const propertyId = editBtn.getAttribute("data-property-id");

@@ -149,11 +149,21 @@
     return null;
   }
 
+  function normalizeDatabasePropertyType(value) {
+    const type = String(value || "").trim().toLowerCase();
+    if (type === "room") return "Single Room";
+    if (type === "studio") return "Studio Apartment";
+    if (type === "apartment") return "Apartment";
+    if (type === "house") return "House";
+    if (type === "boarding-house") return "Shared Room";
+    return String(value || "Property").trim() || "Property";
+  }
+
   function adaptDatabaseProperty(property) {
     if (!property) return null;
     const city = property.city || "";
     const area = property.area || "";
-    const type = property.property_type || "Property";
+    const type = normalizeDatabasePropertyType(property.property_type);
 
     let image = "assets/properties/bole-studio.jpg";
     if (city === "Dire Dawa") {

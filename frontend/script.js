@@ -715,6 +715,16 @@
 
   /* ------------------------- Supabase API Properties ---------------------- */
 
+  function normalizeDatabasePropertyType(value) {
+    const type = String(value || "").trim().toLowerCase();
+    if (type === "room") return "Single Room";
+    if (type === "studio") return "Studio Apartment";
+    if (type === "apartment") return "Apartment";
+    if (type === "house") return "House";
+    if (type === "boarding-house") return "Shared Room";
+    return String(value || "Property").trim() || "Property";
+  }
+
   async function loadDatabaseProperties() {
     if (!propertyGrid) return;
 
@@ -744,7 +754,8 @@
         article.dataset.city = property.city || "";
         article.dataset.subCity = "";
         article.dataset.area = property.area || "";
-        article.dataset.type = property.property_type || "";
+        const normalizedType = normalizeDatabasePropertyType(property.property_type);
+        article.dataset.type = normalizedType;
         article.dataset.price = String(property.rent || 0);
 
         // Temporary city-based image until Supabase Storage is connected
@@ -770,11 +781,25 @@
 
         const media = document.createElement("div");
         media.className = "property-media";
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "save-btn";
+        saveButton.setAttribute("data-save-id", property.id);
+        saveButton.setAttribute("data-property-name", name);
+        saveButton.setAttribute("aria-pressed", "false");
+        saveButton.setAttribute("aria-label", "Save " + name + " to saved properties");
+        saveButton.innerHTML =
+          '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />' +
+          "</svg>";
+
+        media.appendChild(saveButton);
         media.appendChild(imageElement);
 
         const typeBadge = document.createElement("span");
         typeBadge.className = "badge badge-type";
-        typeBadge.textContent = property.property_type || "Property";
+        typeBadge.textContent = normalizedType;
         media.appendChild(typeBadge);
 
         const body = document.createElement("div");
@@ -820,6 +845,11 @@
 
         propertyGrid.appendChild(article);
       });
+
+      // Apply save states to the newly added Supabase property cards
+      if (window.SmartRentalSaved && typeof window.SmartRentalSaved.applyAllSaveStates === "function") {
+        await window.SmartRentalSaved.applyAllSaveStates();
+      }
 
       // Apply the current search filters to the newly loaded cards
       if (typeof filterProperties === "function") {
