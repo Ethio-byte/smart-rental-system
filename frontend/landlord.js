@@ -9,6 +9,8 @@
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
 
+  const supabase = window.supabaseClient || null;
+
   /* ---------------------------- Property Storage --------------------------- */
   const LANDLORD_PROPERTIES_KEY = "smartrental.landlordProperties";
 
@@ -78,6 +80,10 @@
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   const PHONE_PATTERN = /^(\+?251|0)?9\d{8}$/;
 
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+  }
+
   function findErrorEl(input) {
     const id = input.getAttribute("aria-describedby");
     if (!id) return null;
@@ -104,8 +110,11 @@
 
   function showFormMessage(messageEl, type, text) {
     if (!messageEl) return;
-    messageEl.classList.remove("form-message--error", "form-message--success");
-    messageEl.classList.add(type === "success" ? "form-message--success" : "form-message--error");
+    messageEl.classList.remove("form-message--error", "form-message--success", "form-message--loading");
+    let cls = "form-message--error";
+    if (type === "success") cls = "form-message--success";
+    else if (type === "loading") cls = "form-message--loading";
+    messageEl.classList.add(cls);
     messageEl.textContent = text;
     messageEl.hidden = false;
   }
@@ -192,6 +201,7 @@
     let objectUrls = [];
     let selectedFiles = [];
     let coverIndex = 0;
+    let isSubmitting = false;
 
     // Sub-city options by city (only for cities with defined administrative sub-cities)
     const SUB_CITIES_BY_CITY = {
@@ -721,41 +731,343 @@
       };
     }
 
-    addPropertyForm.addEventListener("submit", (event) => {
+    addPropertyForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+
+      // Edit mode is handled by its own submit listener.
+      if (new URLSearchParams(window.location.search).get("edit")) {
+        return;
+      }
+
       clearFormMessage(messageEl);
 
-      if (!validateForm()) {
+    if (isSubmitting) {
+      return;
+    }
+    isSubmitting = true;
+
+    const submitBtn = addPropertyForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Saving...";
+    }
+
+    if (!validateForm()) {
         showFormMessage(messageEl, "error", "Please fix the highlighted fields and try again.");
         focusFirstInvalid(addPropertyForm);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Add Property";
+        }
+        isSubmitting = false;
         return;
       }
 
       const propertyData = collectFormData();
-      const savedProperty = saveProperty(propertyData);
 
-      showFormMessage(
-        messageEl,
-        "success",
-        "Property saved locally (demo only). It now appears in your dashboard below. Data is stored in this browser's localStorage and is not uploaded anywhere."
-      );
+      try {
+        if (!supabase) {
+          throw new Error("Supabase client is not available.");
+        }
 
-      addPropertyForm.reset();
-      selectedFiles = [];
-      coverIndex = 0;
-      revokeUrls();
-      renderPreview();
-      syncCity();
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+
+        const user = authData && authData.user;
+        if (!user) {
+          throw new Error("You must be signed in to add a property.");
+        }
+
+        const insertPayload = {
+          owner_id: user.id,
+          title: propertyData.title,
+          property_type: propertyData.type,
+          city: propertyData.city,
+          area: propertyData.area,
+          rent: propertyData.rent,
+          furnishing: propertyData.furnishing,
+          bedrooms: propertyData.bedrooms,
+          bathrooms: propertyData.bathrooms,
+          description: propertyData.description,
+          phone: propertyData.phone,
+          status: "draft",
+        };
+
+        const { data: insertedProperty, error: insertError } = await supabase
+          .from("properties")
+          .insert(insertPayload)
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        showFormMessage(
+          messageEl,
+          "success",
+          "Property saved to Supabase as a draft. It will appear in your dashboard shortly."
+        );
+
+        addPropertyForm.reset();
+        selectedFiles = [];
+        coverIndex = 0;
+        revokeUrls();
+        renderPreview();
+        syncCity();
+      } catch (err) {
+        console.error("Could not save property:", err);
+        showFormMessage(
+          messageEl,
+          "error",
+          (err && err.message) || "Could not save property. Please try again."
+        );
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Add Property";
+        }
+        isSubmitting = false;
+        return;
+      }
 
       setTimeout(() => {
         window.location.href = "landlord-dashboard.html";
       }, 1500);
     });
+
+    /* ---------------------------- Edit Mode Support -------------------------- */
+    function populateFormForEdit(property) {
+      if (!property) return;
+
+      title.value = property.title || "";
+      type.value = property.type || "";
+      city.value = property.city || "";
+      syncCity();
+
+      const cityValue = property.city;
+      const isOtherCity = cityValue === "Other city or town";
+      const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
+
+      if (isOtherCity) {
+        otherCity.value = property.city || "";
+      }
+
+      if (hasSubCityDropdown && !isOtherCity) {
+        const subCities = SUB_CITIES_BY_CITY[cityValue] || [];
+        if (subCities.includes(property.subCity)) {
+          subCity.value = property.subCity;
+        } else {
+          subCity.value = "Other";
+          otherSubCity.value = property.subCity || "";
+        }
+      } else {
+        otherSubCity.value = property.subCity || "";
+      }
+      syncSubCity();
+
+      woreda.value = property.woreda || "";
+      area.value = property.area || "";
+      landmark.value = property.landmark || "";
+      rent.value = property.rent || "";
+      furnishing.value = property.furnishing || "";
+      bedrooms.value = property.bedrooms || "";
+      bathrooms.value = property.bathrooms || "";
+      description.value = property.description || "";
+      phone.value = property.phone || "";
+
+      selectedFiles = [];
+      objectUrls = [];
+      coverIndex = 0;
+      renderPreview();
+
+      validateForm();
+    }
+
+    async function initEditMode() {
+      const params = new URLSearchParams(window.location.search);
+      const editId = params.get("edit");
+      if (!editId) return;
+
+      const isSupabaseEdit = isUuid(editId);
+
+      let property = null;
+
+      if (isSupabaseEdit) {
+        showFormMessage(messageEl, "loading", "Loading property details...");
+        const loadingBtn = $('button[type="submit"]', addPropertyForm);
+        if (loadingBtn) loadingBtn.disabled = true;
+
+        try {
+          if (!supabase) throw new Error("Supabase client is not available.");
+
+          const { data: authData, error: authError } = await supabase.auth.getUser();
+          if (authError) throw authError;
+
+          const user = authData && authData.user;
+          if (!user) throw new Error("You must be signed in to edit a property.");
+
+          const { data, error } = await supabase
+            .from("properties")
+            .select("*")
+            .eq("id", editId)
+            .eq("owner_id", user.id)
+            .maybeSingle();
+
+          if (error) throw error;
+          if (!data) throw new Error("Property not found. It may have been deleted or you do not have access.");
+
+          property = mapSupabaseProperty(data);
+        } catch (err) {
+          console.error("Could not load property for edit:", err);
+          showFormMessage(
+            messageEl,
+            "error",
+            (err && err.message) || "Could not load property. Please try again."
+          );
+          return;
+        } finally {
+          const btn = $('button[type="submit"]', addPropertyForm);
+          if (btn) btn.disabled = false;
+        }
+      } else {
+        property = getProperty(editId);
+        if (!property) {
+          showFormMessage(messageEl, "error", "Property not found. It may have been deleted.");
+          return;
+        }
+      }
+
+      clearFormMessage(messageEl);
+
+      const editIndicator = document.createElement("div");
+      editIndicator.className = "form-message form-message--success";
+      editIndicator.hidden = false;
+      editIndicator.innerHTML =
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" /></svg>' +
+        'Editing <strong>' + escapeHtml(property.title) + "</strong>. Changes will update the existing listing.";
+
+      const formHead = $(".auth-head", addPropertyForm);
+      if (formHead) {
+        formHead.insertAdjacentElement("afterend", editIndicator);
+      }
+
+      const submitBtn = $('button[type="submit"]', addPropertyForm);
+      if (submitBtn) {
+        submitBtn.textContent = "Save Changes";
+      }
+
+      const originalSubmitHandler = addPropertyForm.onsubmit;
+      addPropertyForm.removeEventListener("submit", originalSubmitHandler);
+
+      addPropertyForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        clearFormMessage(messageEl);
+
+        if (!validateForm()) {
+          showFormMessage(messageEl, "error", "Please fix the highlighted fields and try again.");
+          focusFirstInvalid(addPropertyForm);
+          return;
+        }
+
+        const propertyData = collectFormData();
+
+        const btn = $('button[type="submit"]', addPropertyForm);
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Saving...";
+        }
+        isSubmitting = true;
+
+        showFormMessage(
+          messageEl,
+          "loading",
+          isSupabaseEdit ? "Updating property in Supabase..." : "Updating property locally..."
+        );
+
+        try {
+          if (isSupabaseEdit) {
+            if (!supabase) throw new Error("Supabase client is not available.");
+
+            const { data: authData, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+
+            const user = authData && authData.user;
+            if (!user) throw new Error("You must be signed in to update a property.");
+
+            const updatePayload = {
+              title: propertyData.title,
+              property_type: propertyData.type,
+              city: propertyData.city,
+              area: propertyData.area,
+              rent: propertyData.rent,
+              furnishing: propertyData.furnishing,
+              bedrooms: propertyData.bedrooms,
+              bathrooms: propertyData.bathrooms,
+              description: propertyData.description,
+              phone: propertyData.phone,
+            };
+
+            const { data: updated, error: updateError } = await supabase
+              .from("properties")
+              .update(updatePayload)
+              .eq("id", editId)
+              .eq("owner_id", user.id)
+              .select()
+              .single();
+
+            if (updateError) throw updateError;
+            if (!updated) throw new Error("Update failed. You may not own this property.");
+
+            showFormMessage(
+              messageEl,
+              "success",
+              "Property updated in Supabase. Redirecting to your dashboard..."
+            );
+          } else {
+            updateProperty(editId, propertyData);
+            showFormMessage(
+              messageEl,
+              "success",
+              "Property updated locally (demo only). Changes are saved in this browser's localStorage."
+            );
+          }
+        } catch (err) {
+          console.error("Could not update property:", err);
+          showFormMessage(
+            messageEl,
+            "error",
+            (err && err.message) || "Could not update property. Please try again."
+          );
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Save Changes";
+          }
+          isSubmitting = false;
+          return;
+        }
+
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Save Changes";
+        }
+        isSubmitting = false;
+
+        setTimeout(() => {
+          window.location.href = "landlord-dashboard.html";
+        }, 1500);
+      });
+
+      populateFormForEdit(property);
+    }
+
+    initEditMode();
   }
 
   /* ---------------------------- Dashboard Rendering -------------------------- */
   const propertyTableBody = $("#propertyTableBody");
-  const emptyPropertiesRow = $("#emptyPropertiesRow");
+  let emptyPropertiesRow = $("#emptyPropertiesRow");
+
+  let dashboardProperties = [];
+  let dashboardLoading = false;
+  let dashboardError = null;
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -808,29 +1120,153 @@
     return tr;
   }
 
-  function renderDashboard() {
+  function loadingMarkup() {
+    return (
+      '<div class="empty-state">' +
+      '<span class="empty-state-icon" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 6v6l4 2"></path></svg>' +
+      "</span>" +
+      "<h3>Loading your properties</h3>" +
+      "<p>Please wait while we fetch your listings from Supabase.</p>" +
+      "</div>"
+    );
+  }
+
+  function emptyMarkup() {
+    return (
+      '<div class="empty-state">' +
+      '<span class="empty-state-icon" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" /><path d="M9.5 21v-6h5v6" /></svg>' +
+      "</span>" +
+      "<h3>No properties listed yet</h3>" +
+      "<p>You have not added any properties. Use Add Property to create your first listing.</p>" +
+      '<a class="btn btn-primary" href="add-property.html">Add your first property</a>' +
+      "</div>"
+    );
+  }
+
+  function errorMarkup(message) {
+    return (
+      '<div class="empty-state">' +
+      '<span class="empty-state-icon" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>' +
+      "</span>" +
+      "<h3>Could not load properties</h3>" +
+      "<p>" + escapeHtml(message || "Something went wrong while loading your properties.") + "</p>" +
+      '<button type="button" class="btn btn-primary" onclick="window.loadLandlordProperties()">Try again</button>' +
+      "</div>"
+    );
+  }
+
+  function mapSupabaseProperty(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      title: row.title,
+      type: row.property_type,
+      city: row.city,
+      subCity: "",
+      area: row.area,
+      rent: row.rent,
+      furnishing: row.furnishing,
+      bedrooms: row.bedrooms,
+      bathrooms: row.bathrooms,
+      description: row.description,
+      phone: row.phone,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async function loadLandlordProperties() {
     if (!propertyTableBody) return;
 
-    const properties = getLandlordProperties();
+    dashboardLoading = true;
+    dashboardError = null;
+    renderDashboard();
 
-    if (emptyPropertiesRow) {
-      emptyPropertiesRow.hidden = properties.length > 0;
+    try {
+      if (!supabase) {
+        throw new Error("Supabase client is not available.");
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+
+      const user = authData && authData.user;
+      if (!user) {
+        throw new Error("You must be signed in to view your properties.");
+      }
+
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("owner_id", user.id);
+
+      if (error) throw error;
+
+      dashboardProperties = (data || [])
+        .map(mapSupabaseProperty)
+        .filter(Boolean);
+
+      dashboardLoading = false;
+      renderDashboard();
+    } catch (err) {
+      console.error("Could not load landlord properties:", err);
+      dashboardError =
+        (err && err.message) || "Could not load your properties.";
+      dashboardLoading = false;
+      renderDashboard();
     }
+  }
+
+  window.loadLandlordProperties = loadLandlordProperties;
+
+  function renderDashboard() {
+    if (!propertyTableBody) return;
 
     const existingRows = $$("tr[data-property-id]", propertyTableBody);
     existingRows.forEach((row) => row.remove());
 
-    if (properties.length === 0) {
+    if (!emptyPropertiesRow || !propertyTableBody.contains(emptyPropertiesRow)) {
+      const row = document.createElement("tr");
+      row.id = "emptyPropertiesRow";
+      const cell = document.createElement("td");
+      cell.colSpan = 5;
+      row.appendChild(cell);
+      emptyPropertiesRow = row;
+      propertyTableBody.appendChild(emptyPropertiesRow);
+    }
+
+    if (dashboardLoading) {
+      emptyPropertiesRow.hidden = false;
+      emptyPropertiesRow.querySelector("td").innerHTML = loadingMarkup();
       return;
     }
 
-    properties.forEach((property) => {
+    if (dashboardError) {
+      emptyPropertiesRow.hidden = false;
+      emptyPropertiesRow.querySelector("td").innerHTML = errorMarkup(dashboardError);
+      return;
+    }
+
+    if (!dashboardProperties || dashboardProperties.length === 0) {
+      emptyPropertiesRow.hidden = false;
+      emptyPropertiesRow.querySelector("td").innerHTML = emptyMarkup();
+      return;
+    }
+
+    emptyPropertiesRow.hidden = true;
+
+    dashboardProperties.forEach((property) => {
       propertyTableBody.appendChild(createPropertyRow(property));
     });
   }
 
   /* ---------------------------- Edit/Delete Handlers ----------------------- */
   function openEditModal(property) {
+    if (!property) return;
     const url = "add-property.html?edit=" + encodeURIComponent(property.id);
     window.location.href = url;
   }
@@ -859,7 +1295,8 @@
       if (editBtn) {
         const propertyId = editBtn.getAttribute("data-property-id");
         if (propertyId) {
-          openEditModal(getProperty(propertyId));
+          const property = dashboardProperties.find((p) => p.id === propertyId) || getProperty(propertyId);
+          if (property) openEditModal(property);
         }
         return;
       }
@@ -874,120 +1311,10 @@
     });
   }
 
-  /* ---------------------------- Edit Mode Support -------------------------- */
-  function populateFormForEdit(property) {
-    if (!property) return;
-
-    title.value = property.title || "";
-    type.value = property.type || "";
-    city.value = property.city || "";
-    syncCity();
-
-    const cityValue = property.city;
-    const isOtherCity = cityValue === "Other city or town";
-    const hasSubCityDropdown = CITIES_WITH_SUBCITY_DROPDOWN.has(cityValue);
-
-    if (isOtherCity) {
-      otherCity.value = property.city || "";
-    }
-
-    if (hasSubCityDropdown && !isOtherCity) {
-      const subCities = SUB_CITIES_BY_CITY[cityValue] || [];
-      if (subCities.includes(property.subCity)) {
-        subCity.value = property.subCity;
-      } else {
-        subCity.value = "Other";
-        otherSubCity.value = property.subCity || "";
-      }
-    } else {
-      otherSubCity.value = property.subCity || "";
-    }
-    syncSubCity();
-
-    woreda.value = property.woreda || "";
-    area.value = property.area || "";
-    landmark.value = property.landmark || "";
-    rent.value = property.rent || "";
-    furnishing.value = property.furnishing || "";
-    bedrooms.value = property.bedrooms || "";
-    bathrooms.value = property.bathrooms || "";
-    description.value = property.description || "";
-    phone.value = property.phone || "";
-
-    selectedFiles = [];
-    objectUrls = [];
-    coverIndex = 0;
-    renderPreview();
-
-    validateForm();
-  }
-
-  function initEditMode() {
-    const params = new URLSearchParams(window.location.search);
-    const editId = params.get("edit");
-    if (!editId) return;
-
-    const property = getProperty(editId);
-    if (!property) {
-      showFormMessage(messageEl, "error", "Property not found. It may have been deleted.");
-      return;
-    }
-
-    const editIndicator = document.createElement("div");
-    editIndicator.className = "form-message form-message--success";
-    editIndicator.hidden = false;
-    editIndicator.innerHTML =
-      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" /></svg>' +
-      'Editing <strong>' + escapeHtml(property.title) + "</strong>. Changes will update the existing listing.";
-
-    const formHead = $(".auth-head", addPropertyForm);
-    if (formHead) {
-      formHead.insertAdjacentElement("afterend", editIndicator);
-    }
-
-    const submitBtn = $('button[type="submit"]', addPropertyForm);
-    if (submitBtn) {
-      submitBtn.textContent = "Save Changes";
-    }
-
-    const originalSubmitHandler = addPropertyForm.onsubmit;
-    addPropertyForm.removeEventListener("submit", originalSubmitHandler);
-
-    addPropertyForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      clearFormMessage(messageEl);
-
-      if (!validateForm()) {
-        showFormMessage(messageEl, "error", "Please fix the highlighted fields and try again.");
-        focusFirstInvalid(addPropertyForm);
-        return;
-      }
-
-      const propertyData = collectFormData();
-      updateProperty(editId, propertyData);
-
-      showFormMessage(
-        messageEl,
-        "success",
-        "Property updated locally (demo only). Changes are saved in this browser's localStorage."
-      );
-
-      setTimeout(() => {
-        window.location.href = "landlord-dashboard.html";
-      }, 1500);
-    });
-
-    populateFormForEdit(property);
-  }
-
   /* ---------------------------- Init Dashboard ----------------------------- */
   if (propertyTableBody) {
-    renderDashboard();
     setupDashboardActions();
-  }
-
-  if (addPropertyForm) {
-    initEditMode();
+    loadLandlordProperties();
   }
 
   /* ------------------------------- Footer year ----------------------------- */
