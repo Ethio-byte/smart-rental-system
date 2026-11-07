@@ -1271,15 +1271,56 @@
     window.location.href = url;
   }
 
-  function confirmDelete(propertyId) {
-    const property = getProperty(propertyId);
+  async function confirmDelete(propertyId, triggerBtn) {
+    const isSupabaseDelete = isUuid(propertyId);
+    const property = isSupabaseDelete
+      ? dashboardProperties.find((p) => p.id === propertyId) || null
+      : getProperty(propertyId);
     if (!property) return;
 
     const confirmed = window.confirm(
-      'Delete "' + property.title + '"?\n\nThis action cannot be undone. The property will be permanently removed from your dashboard.'
+      'Delete "' + property.title + '"?\\n\\nThis action cannot be undone. The property will be permanently removed from your dashboard.'
     );
+    if (!confirmed) return;
 
-    if (confirmed) {
+    if (isSupabaseDelete) {
+      if (triggerBtn) {
+        triggerBtn.disabled = true;
+        triggerBtn.textContent = "Deleting...";
+      }
+
+      try {
+        if (!supabase) throw new Error("Supabase client is not available.");
+
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+
+        const user = authData && authData.user;
+        if (!user) throw new Error("You must be signed in to delete a property.");
+
+        const { data: deletedRows, error: deleteError } = await supabase
+          .from("properties")
+          .delete()
+          .eq("id", propertyId)
+          .eq("owner_id", user.id)
+          .select();
+
+        if (deleteError) throw deleteError;
+        if (!deletedRows || deletedRows.length === 0) {
+          throw new Error("Delete failed. You may not own this property, or it no longer exists.");
+        }
+
+        dashboardProperties = dashboardProperties.filter((p) => p.id !== propertyId);
+        renderDashboard();
+      } catch (err) {
+        console.error("Could not delete property:", err);
+        window.alert((err && err.message) || "Could not delete property. Please try again.");
+        if (triggerBtn) {
+          triggerBtn.disabled = false;
+          triggerBtn.textContent = "Delete";
+        }
+      }
+    } else {
       deleteProperty(propertyId);
       renderDashboard();
     }
@@ -1304,7 +1345,7 @@
       if (deleteBtn) {
         const propertyId = deleteBtn.getAttribute("data-property-id");
         if (propertyId) {
-          confirmDelete(propertyId);
+          confirmDelete(propertyId, deleteBtn);
         }
         return;
       }
