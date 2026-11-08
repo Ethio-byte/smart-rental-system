@@ -452,6 +452,9 @@
       objectUrls.splice(index, 1);
 
       // Adjust cover index if needed
+      if (index < coverIndex) {
+        coverIndex -= 1;
+      }
       if (coverIndex >= selectedFiles.length) {
         coverIndex = selectedFiles.length > 0 ? 0 : 0;
       }
@@ -731,6 +734,35 @@
       };
     }
 
+    async function uploadPropertyImages(propertyId) {
+      if (!propertyId || !selectedFiles || selectedFiles.length === 0) return;
+
+      const imageRows = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const safeName = String(file.name || "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = String(propertyId) + "/" + Date.now() + "-" + i + "-" + safeName;
+
+        const { error: uploadError } = await supabase.storage
+          .from("property-images")
+          .upload(path, file, { contentType: file.type || undefined, upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        imageRows.push({
+          property_id: propertyId,
+          image_url: path,
+          is_cover: i === coverIndex,
+        });
+      }
+
+      const { error: insertError } = await supabase
+        .from("property_images")
+        .insert(imageRows);
+
+      if (insertError) throw insertError;
+    }
+
     addPropertyForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
@@ -800,6 +832,12 @@
           .single();
 
         if (insertError) throw insertError;
+
+        if (selectedFiles.length > 0) {
+          showFormMessage(messageEl, "loading", "Uploading photos...");
+          if (submitBtn) submitBtn.textContent = "Uploading photos...";
+          await uploadPropertyImages(insertedProperty.id);
+        }
 
         showFormMessage(
           messageEl,
@@ -1015,6 +1053,13 @@
 
             if (updateError) throw updateError;
             if (!updated) throw new Error("Update failed. You may not own this property.");
+
+            if (selectedFiles.length > 0) {
+              showFormMessage(messageEl, "loading", "Uploading photos...");
+              const editSubmitBtn = $('button[type="submit"]', addPropertyForm);
+              if (editSubmitBtn) editSubmitBtn.textContent = "Uploading photos...";
+              await uploadPropertyImages(editId);
+            }
 
             showFormMessage(
               messageEl,

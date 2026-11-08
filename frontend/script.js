@@ -211,6 +211,7 @@
 
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
+  const supabase = window.supabaseClient || null;
 
   /* ------------------------------- Navigation ------------------------------ */
   const header = $("#siteHeader");
@@ -741,6 +742,52 @@
         throw new Error("Invalid properties response");
       }
 
+      const coverImageByProperty = new Map();
+      if (supabase && result.properties.length > 0) {
+        try {
+          const propertyIds = result.properties.map((property) => property.id);
+          const { data: imageRows, error: imageError } = await supabase
+            .from("property_images")
+            .select("property_id,image_url,is_cover")
+            .in("property_id", propertyIds);
+
+          if (!imageError && Array.isArray(imageRows) && imageRows.length > 0) {
+            const coverPathByProperty = new Map();
+            imageRows.forEach((row) => {
+              if (row.is_cover && !coverPathByProperty.has(row.property_id)) {
+                coverPathByProperty.set(row.property_id, row.image_url);
+              }
+            });
+            imageRows.forEach((row) => {
+              if (!coverPathByProperty.has(row.property_id) && row.image_url) {
+                coverPathByProperty.set(row.property_id, row.image_url);
+              }
+            });
+
+            const uniquePaths = [...new Set(coverPathByProperty.values())].filter(Boolean);
+            if (uniquePaths.length > 0) {
+              const { data: signedRows } = await supabase.storage
+                .from("property-images")
+                .createSignedUrls(uniquePaths, 60 * 60 * 24 * 365);
+
+              const signedUrlByPath = new Map();
+              (signedRows || []).forEach((item) => {
+                if (item && !item.error && item.path && item.signedUrl) {
+                  signedUrlByPath.set(item.path, item.signedUrl);
+                }
+              });
+
+              coverPathByProperty.forEach((path, propertyId) => {
+                const signedUrl = signedUrlByPath.get(path);
+                if (signedUrl) coverImageByProperty.set(propertyId, signedUrl);
+              });
+            }
+          }
+        } catch (imageError) {
+          console.error("Could not load property images:", imageError);
+        }
+      }
+
       result.properties.forEach((property) => {
         // Avoid duplicates
         if (propertyGrid.querySelector(
@@ -758,13 +805,15 @@
         article.dataset.type = normalizedType;
         article.dataset.price = String(property.rent || 0);
 
-        // Temporary city-based image until Supabase Storage is connected
-        let image = "assets/properties/bole-studio.jpg";
-
-        if (property.city === "Dire Dawa") {
-          image = "assets/properties/dire-house.jpg";
-        } else if (property.city === "Hawassa") {
-          image = "assets/properties/hawassa-room.jpg";
+        // Use an uploaded cover image when available; otherwise keep the city-based fallback.
+        let image = coverImageByProperty.get(property.id);
+        if (!image) {
+          image = "assets/properties/bole-studio.jpg";
+          if (property.city === "Dire Dawa") {
+            image = "assets/properties/dire-house.jpg";
+          } else if (property.city === "Hawassa") {
+            image = "assets/properties/hawassa-room.jpg";
+          }
         }
 
         const location = [property.city, property.area]

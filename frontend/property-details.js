@@ -141,6 +141,7 @@
 
   const STORAGE_KEY = "smartrental.savedProperties";
   const LANDLORD_PROPERTIES_KEY = "smartrental.landlordProperties";
+  const supabase = window.supabaseClient || null;
 
   /* ------------------------ Landlord property adapter ---------------------- */
   // Convert a landlord property (from localStorage) to the property-details format.
@@ -297,6 +298,47 @@
      };
    }
 
+
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+  }
+
+  async function loadPropertyImages(propertyId) {
+    if (!isUuid(propertyId) || !supabase) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from("property_images")
+        .select("image_url,is_cover")
+        .eq("property_id", propertyId);
+
+      if (error || !Array.isArray(data) || data.length === 0) return [];
+
+      const rows = data.slice().sort((a, b) => (b.is_cover ? 1 : 0) - (a.is_cover ? 1 : 0));
+      const images = [];
+
+      for (const row of rows) {
+        const path = row.image_url;
+        if (!path) continue;
+
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from("property-images")
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+
+        if (signedError || !signedData || !signedData.signedUrl) continue;
+
+        images.push({
+          src: signedData.signedUrl,
+          alt: "Property image",
+        });
+      }
+
+      return images;
+    } catch (e) {
+      console.error("Could not load property images:", e);
+      return [];
+    }
+  }
 
   /* ---------------------------- Utility Functions -------------------------- */
 function escapeHtml(value) {
@@ -719,6 +761,15 @@ function escapeHtml(value) {
         "Property Not Found"
       );
       return;
+    }
+
+    if (isUuid(propertyId)) {
+      const propertyImages = await loadPropertyImages(propertyId);
+      if (propertyImages.length > 0) {
+        property.photos = propertyImages;
+        property.image = propertyImages[0].src;
+        property.imageAlt = propertyImages[0].alt;
+      }
     }
 
      await renderProperty(property);

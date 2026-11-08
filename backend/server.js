@@ -25,7 +25,7 @@ app.get("/api/health", (req, res) => {
 app.get("/api/properties", async (req, res) => {
   const { data, error } = await supabase
     .from("properties")
-    .select("*")
+    .select("*, property_images(*)")
     .eq("status", "published");
 
   if (error) {

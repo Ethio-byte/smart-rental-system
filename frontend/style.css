@@ -2116,6 +2116,12 @@ section {
   border-color: var(--color-green-100);
 }
 
+.form-message--loading {
+  background: var(--color-blue-100);
+  color: var(--color-blue-800);
+  border-color: var(--color-blue-600);
+}
+
 .btn-block {
   width: 100%;
   margin-top: 0.25rem;
